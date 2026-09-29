@@ -8,7 +8,7 @@ BUILD_DRIVERS = $(BUILD_DIR)drivers/
 BUILD_SOURCE = $(BUILD_DIR)source/
 
 
-.PHONY: qemu_run iso dirs
+.PHONY: qemu_run qemu_run_quiet iso dirs clean
 
 dirs: 
 	mkdir -p $(BUILD_DIR) $(BUILD_DRIVERS) $(BUILD_SOURCE)
