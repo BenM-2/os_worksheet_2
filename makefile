@@ -7,6 +7,23 @@ BUILD_DIR = build/
 BUILD_DRIVERS = $(BUILD_DIR)drivers/
 BUILD_SOURCE = $(BUILD_DIR)source/
 
+CC = gcc
+CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs -Wall -Wextra -Werror
+AS = nasm
+ASFLAGS = -f elf
+LDFLAGS = -T ./$(SRC)link.ld -melf_i386
+
+# Discover sources and map them to object paths
+SRC_C_FILES     := $(wildcard $(SRC)*.c)
+DRIVERS_C_FILES := $(wildcard $(DRIVERS)*.c)
+
+SRC_OBJECTS     := $(patsubst $(SRC)%.c,$(BUILD_SOURCE)%.o,$(SRC_C_FILES))
+DRIVERS_OBJECTS := $(patsubst $(DRIVERS)%.c,$(BUILD_DRIVERS)%.o,$(DRIVERS_C_FILES))
+
+LOADER_OBJ      := $(BUILD_SOURCE)loader.o
+SRC_ASM_FILES   := $(filter-out $(SRC)loader.asm,$(wildcard $(SRC)*.asm))
+ASM_OBJECTS     := $(patsubst $(SRC)%.asm,$(BUILD_SOURCE)%.o,$(SRC_ASM_FILES))
+
 
 .PHONY: qemu_run qemu_run_quiet iso dirs clean
 
@@ -14,7 +31,7 @@ dirs:
 	mkdir -p $(BUILD_DIR) $(BUILD_DRIVERS) $(BUILD_SOURCE)
 
 qemu_run: | iso
-	qemu-system-i386 -nographic -boot d -cdrom os.iso -m 32 -d cpu -D logQ.tx
+	qemu-system-i386 -boot d -cdrom os.iso -m 32 -d cpu -D logQ.tx
 
 qemu_run_quiet: | iso
 	qemu-system-i386 -nographic -boot d -cdrom os.iso -m 32 
@@ -31,11 +48,17 @@ iso: $(BOOT)kernel.elf
 	-o os.iso \
 	iso
 
-$(BOOT)kernel.elf: $(BUILD_SOURCE)loader.o | dirs
-	ld -T ./$(SRC)link.ld -melf_i386 $(BUILD_SOURCE)loader.o -o $(BOOT)kernel.elf
+$(BOOT)kernel.elf: $(LOADER_OBJ) $(SRC_OBJECTS) $(ASM_OBJECTS) $(DRIVERS_OBJECTS) | dirs
+	ld $(LDFLAGS) $^ -o $@
 
-$(BUILD_SOURCE)loader.o: | dirs
-	nasm -f elf $(SRC)loader.asm -o $(BUILD_SOURCE)loader.o
+$(BUILD_SOURCE)%.o: $(SRC)%.c | dirs
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_SOURCE)%.o: $(SRC)%.asm | dirs
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DRIVERS)%.o: $(DRIVERS)%.c | dirs
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)
