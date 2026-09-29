@@ -1,6 +1,6 @@
 
 global loader                               ; entry symbol for ELF
-extern sum_of_three
+extern kernel_main
     MAGIC_NUMBER        equ 0x1BADB002      ; Define the magic number constant
     FLAGS               equ 0x0             ; Multiboot flags
     CHECKSUM            equ -MAGIC_NUMBER   ; Calculate the checksum 
@@ -21,8 +21,8 @@ extern sum_of_three
     loader:                             ; The loader label (defined as entry point in the linker script)
         mov eax, 0xCAFEBABE             ; place the number 0xCAFEBABE In the eax register
         mov esp, kernel_stack + KERNEL_STACK_SIZE ; point esp to the start of the stack (end of memory area)
-        push dword 3
-        push dword 2
-        push dword 1
-        call sum_of_three
+        call kernel_main
+    
+    .loop:
+        jmp .loop
     

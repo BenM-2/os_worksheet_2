@@ -25,7 +25,7 @@ SRC_ASM_FILES   := $(filter-out $(SRC)loader.asm,$(wildcard $(SRC)*.asm))
 ASM_OBJECTS     := $(patsubst $(SRC)%.asm,$(BUILD_SOURCE)%.o,$(SRC_ASM_FILES))
 
 
-.PHONY: qemu_run qemu_run_quiet iso dirs clean
+.PHONY: qemu_run qemu_run_quiet qemu_run_curses telnet iso dirs clean
 
 dirs: 
 	mkdir -p $(BUILD_DIR) $(BUILD_DRIVERS) $(BUILD_SOURCE)
@@ -35,6 +35,12 @@ qemu_run: | iso
 
 qemu_run_quiet: | iso
 	qemu-system-i386 -nographic -boot d -cdrom os.iso -m 32 
+
+qemu_run_curses: | iso
+	qemu-system-i386 -display curses -monitor telnet::45454,server,nowait -serial mon:stdio -boot d -cdrom os.iso -m 32 -d cpu -D logQ.txt
+
+telnet:
+	telnet localhost 45454
 
 iso: $(BOOT)kernel.elf
 	genisoimage -R \
