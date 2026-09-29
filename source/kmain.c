@@ -1,17 +1,26 @@
-typedef struct __attribute__((packed)) {
-    unsigned char asci_char;    // Ascii character
-    unsigned char FG_BG;        // FG + BG
-} FrameBuffer ;
+/**
+ * @file kmain.c
+ * @author Ben Marples
+ * 
+ */
 
+//------------------------------------------------------------------------------
+// Includes
+#include "framebuffer.h"
+
+//------------------------------------------------------------------------------
+// Function Implementions
 int kernel_main()
 {
-    // Frame buffer 
-    // FrameBuffer *fb = (FrameBuffer *)0x000B800;
-    // FrameBuffer test = {'A',0x28};
-    // fb[0] = test;
-
-    unsigned char *fb = (unsigned char *)0x000B8000;
-    fb[0] = 'A';
-    fb[1] = 0x28;
+    FB_set_FG_ALL(RED);
+    FB_set_FG_CELL(GREEN, 1,2);
+    // BG
+    FB_set_BG_ALL(LIGHT_MAGENTA);
+    FB_set_BG_CELL(BLACK,2,2);
+    // Char
+    FB_set_CHAR_ALL(' ');
+    FB_set_CHAR_CELL('A',3,2);
+    // Full Cell
+    FB_set_FULL_CELL('B',BLACK,WHITE, 4,2);
     return 0;
 }
