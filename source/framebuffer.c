@@ -35,7 +35,7 @@ void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const 
 
 static int FB_ROW_COL_TO_INDEX(const unsigned int col, const unsigned int row)
 {
-    return (col % FB_MAX_COL) + ((row % FB_MAX_ROW) * FB_MAX_ROW);
+    return (col % FB_MAX_COL) + ((row % FB_MAX_ROW) * FB_MAX_COL);
 }
 
 // Set All
