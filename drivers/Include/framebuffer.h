@@ -54,53 +54,87 @@ typedef enum
 /* The I/O port commands */
 #define FB_HIGH_BYTE_COMMAND 14
 #define FB_LOW_BYTE_COMMAND 15
-/** fb_move_cursor:
- * Moves the cursor of the framebuffer to the given position
- *
- * @param pos The new position of the cursor
- */
-static void FB_move_cursor(unsigned short pos)
-{
-    outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
-    outb(FB_DATA_PORT, ((pos >> 8) & 0x00FF));
-    outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
-    outb(FB_DATA_PORT, pos & 0x00FF);
-}
-
-#else /* Custom Cursor */
-
-static struct
-{
-    unsigned short row;
-    unsigned short col;
-    unsigned short index;
-} FB_cursor;
-
-static void FB_move_cursor(const unsigned short pos)
-{
-    FB_cursor.row = pos / FB_MAX_COL;
-    FB_cursor.col = pos % FB_MAX_COL;
-    FB_cursor.index = pos;
-}
 
 #endif
-
 //------------------------------------------------------------------------------
 // Function Declarations
 
-// // FG
-// void FB_set_FG_ALL(const FB_COLOUR c);
-// void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
-// // BG
-// void FB_set_BG_ALL(const FB_COLOUR c);
-// void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
-// // Char
-// void FB_set_CHAR_ALL(const char c);
-// void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
-// // Full Cell
-// void FB_set_FULL_CELL(const char c, const FB_COLOUR FG, const FB_COLOUR BG, const unsigned int col, const unsigned int row);
+// Cursor
+void FB_move_cursor(unsigned short pos);
+void FB_move_cursor_row_col(const unsigned int col, const unsigned int row);
+unsigned short FB_get_cursor();
+void FB_increment_cursor();
+void FB_decrement_cursor();
+void FB_write_string(const char *const buff, const unsigned int length);
 
-// // Final Functions
-// void FB_print_string(const char *const s);
+// FG
+void FB_set_FG_ALL(const FB_COLOUR c);
+void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
+void FB_set_FG_CELL_INDEX(const FB_COLOUR c, const unsigned int index);
+
+// BG
+void FB_set_BG_ALL(const FB_COLOUR c);
+void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
+void FB_set_BG_CELL_INDEX(const FB_COLOUR c, const unsigned int index);
+
+// CHAR
+void FB_set_CHAR_ALL(const char c);
+void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
+void FB_set_CHAR_CELL_INDEX(const char c, const unsigned int index);
+
+#ifdef NO_NAMESPACE
+// Cursor
+static inline void move_cursor(unsigned short pos) {
+    FB_move_cursor(pos);
+}
+static inline void move_cursor_row_col(const unsigned int col, const unsigned int row) {
+    FB_move_cursor_row_col(col, row);
+}
+static inline unsigned short get_cursor(void) {
+    return FB_get_cursor();
+}
+static inline void increment_cursor(void) {
+    FB_increment_cursor();
+}
+static inline void decrement_cursor(void) {
+    FB_decrement_cursor();
+}
+static inline void write_string(const char *const buff, const unsigned int length) {
+    FB_write_string(buff, length);
+}
+
+// FG
+static inline void set_FG_ALL(const FB_COLOUR c) {
+    FB_set_FG_ALL(c);
+}
+static inline void set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row) {
+    FB_set_FG_CELL(c, col, row);
+}
+static inline void set_FG_CELL_INDEX(const FB_COLOUR c, const unsigned int index) {
+    FB_set_FG_CELL_INDEX(c, index);
+}
+
+// BG
+static inline void set_BG_ALL(const FB_COLOUR c) {
+    FB_set_BG_ALL(c);
+}
+static inline void set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row) {
+    FB_set_BG_CELL(c, col, row);
+}
+static inline void set_BG_CELL_INDEX(const FB_COLOUR c, const unsigned int index) {
+    FB_set_BG_CELL_INDEX(c, index);
+}
+
+// CHAR
+static inline void set_CHAR_ALL(const char c) {
+    FB_set_CHAR_ALL(c);
+}
+static inline void set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row) {
+    FB_set_CHAR_CELL(c, col, row);
+}
+static inline void set_CHAR_CELL_INDEX(const char c, const unsigned int index) {
+    FB_set_CHAR_CELL_INDEX(c, index);
+}
+#endif
 
 #endif

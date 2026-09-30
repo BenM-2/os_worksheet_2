@@ -9,6 +9,9 @@ BUILD_SOURCE = $(BUILD_DIR)source/
 
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -I$(DRIVERS)/Include
+ifeq ($(EXPERIMENTAL),1)
+CFLAGS += -DFRAME_BUFFER_CUSTOM_CURSOR
+endif
 AS = nasm
 ASFLAGS = -f elf
 LDFLAGS = -T ./$(SRC)link.ld -melf_i386

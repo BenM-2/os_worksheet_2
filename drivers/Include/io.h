@@ -18,4 +18,16 @@
 */
 void outb(unsigned short port, unsigned char data);
 
+
+/** inb:
+; move the address of the I/O port to the dx register
+; read a byte from the I/O port and store it in the al register
+; return the read byte
+* Read a byte from an I/O port.
+*
+* @param port The address of the I/O port
+* @return
+The read byte
+*/
+unsigned char inb(unsigned short port);
 #endif /* IO_H */
