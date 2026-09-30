@@ -6,21 +6,23 @@
 
 //------------------------------------------------------------------------------
 // Includes
+#define NO_NAMESPACE
 #include "framebuffer.h"
-
+#include "kstring.h"
 //------------------------------------------------------------------------------
 // Function Implementions
+
+
 int kernel_main()
 {
-    FB_set_FG_ALL(RED);
-    FB_set_FG_CELL(GREEN, 1,2);
-    // BG
-    FB_set_BG_ALL(LIGHT_MAGENTA);
-    FB_set_BG_CELL(BLACK,2,2);
-    // Char
-    FB_set_CHAR_ALL(' ');
-    FB_set_CHAR_CELL('A',3,2);
-    // Full Cell
-    FB_set_FULL_CELL('B',BLACK,WHITE, 4,2);
+    set_BG_ALL(DARK_GREY);
+    set_FG_ALL(WHITE);
+    set_CHAR_ALL(' ');
+
+    static char *const buf = "~:$";
+    move_cursor(0);
+    write_string(buf,strlen(buf));
+    move_cursor(80);
+    write_string(buf,strlen(buf));
     return 0;
 }
