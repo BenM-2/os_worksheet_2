@@ -9,6 +9,14 @@
 | GCC   | C compilation and linking |
 | NASM  | Assembly compilation      |
 
+## Todo
+|Task| Desc | Time | Priority |
+|-|-|-|-|
+|Finish Frame buffer api| Complete full api spec as listed under [FB API](#functions)|2 Days|5|
+|Interupts | Implement Interupt Handler under [TBD](#interupt-handlers) | TBD | 4 |
+|Keyboard Handler| Implement full keyboard support | TBD | 3 |
+|TUI| Implement a Set of instructions for tinyOS | TBD | 2 |
+
 ## Task 1 
 ### Overview
 To complete task 1 `0xCAFEBABE` needs to be placed into the `eax` register. To do this we use GRUB as a bootloader 
@@ -23,7 +31,22 @@ to run the os silently just run
 make qemu_run_quiet
 ```
 
+## Task 2+
+
+## Running 
+To run the os from task 2 onwards first run 
+``` Bash
+make clean && make qemu_run_curses 
+```
+then in a separate terminal run 
+``` Bash
+make telnet 
+```
+This is best done using either 2 diferent tabs or via TMUX to allow for ease of viewing both terminals.
+
 ## Frame Buffer Api
+### Design
+The frame buffer api only exposes a select few functions whilst keeping the majority of the functions static to allow for a stricter interface overall
 
 ### Requirements
 > [!NOTE]
@@ -52,4 +75,11 @@ Here is a list of all functions I want my framebuffer API to have eventually and
 | `clear`| Clears the whole framebuffer to be empty and reset cursor position to 0,0 | `void` | `None` | No |
 | `mov_cursor`| Writes current cursor position | `void` | `const unsigned int col`, `const unsigned int row` | No |
 
+### Cursor
+There are 2 cursor implementations one using the vga buffer and the other using a static struct to hold the place of the cursor by default vga cursor will be enabled but to enable the static struct cursor above the include for the framebuffer in main 
+``` c
+#define FRAME_BUFFER_CUSTOM_CURSOR
+#include "framebuffer.h"
+```
 
+## Interupt Handlers

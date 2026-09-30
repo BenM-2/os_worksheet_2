@@ -7,28 +7,30 @@
 //------------------------------------------------------------------------------
 // Includes
 #include "framebuffer.h"
-//------------------------------------------------------------------------------
-// Definitions
-#define FRAME_BUFFER_START 0x000B8000
-#define FB_MAX_COL 80
-#define FB_MAX_ROW 25
-#define FB_lower_mask 0xF0
-#define FB_upper_mask 0x0F
+#include "io.h"
 
 //------------------------------------------------------------------------------
 // Function Declarations
+
+// Direct FB access
 static int FB_ROW_COL_TO_INDEX(const unsigned int col, const unsigned int row);
 // FG
-void FB_set_FG_ALL(const FB_COLOUR c);
-void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
+static void FB_set_FG_ALL(const FB_COLOUR c);
+static void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
 // BG
-void FB_set_BG_ALL(const FB_COLOUR c);
-void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
+static void FB_set_BG_ALL(const FB_COLOUR c);
+static void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row);
 // Char
-void FB_set_CHAR_ALL(const char c);
-void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
+static void FB_set_CHAR_ALL(const char c);
+static void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
 // Full Cell
-void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const unsigned int col, const unsigned int row);
+static void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const unsigned int col, const unsigned int row);
+
+// FB cursor 
+
+
+// Public Facing functions
+
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -39,7 +41,7 @@ static int FB_ROW_COL_TO_INDEX(const unsigned int col, const unsigned int row)
 }
 
 // Set All
-void FB_set_FG_ALL(const FB_COLOUR c)
+static void FB_set_FG_ALL(const FB_COLOUR c)
 {
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
     for (int i = 0; i < (FB_MAX_ROW * FB_MAX_COL); i++)
@@ -51,7 +53,7 @@ void FB_set_FG_ALL(const FB_COLOUR c)
     }
 }
 
-void FB_set_BG_ALL(const FB_COLOUR c)
+static void FB_set_BG_ALL(const FB_COLOUR c)
 {
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
     for (int i = 0; i < (FB_MAX_ROW * FB_MAX_COL); i++)
@@ -63,7 +65,7 @@ void FB_set_BG_ALL(const FB_COLOUR c)
     }
 }
 
-void FB_set_CHAR_ALL(const char c)
+static void FB_set_CHAR_ALL(const char c)
 {
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
     for (int i = 0; i < (FB_MAX_ROW * FB_MAX_COL); i++)
@@ -75,7 +77,7 @@ void FB_set_CHAR_ALL(const char c)
 }
 
 // Set CELL
-void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
+static void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
 {
     int index = FB_ROW_COL_TO_INDEX(col, row);
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
@@ -85,7 +87,7 @@ void FB_set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned in
     fb[index] = temp;
 }
 
-void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
+static void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
 {
     int index = FB_ROW_COL_TO_INDEX(col, row);
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
@@ -95,7 +97,7 @@ void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned in
     fb[index] = temp;
 }
 
-void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row)
+static void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row)
 {
     const int index = FB_ROW_COL_TO_INDEX(col, row);
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
@@ -104,7 +106,8 @@ void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int r
     fb[index] = temp;
 }
 
-void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const unsigned int col, const unsigned int row)
+// Set FULL CELL
+static void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const unsigned int col, const unsigned int row)
 {
     const int index = FB_ROW_COL_TO_INDEX(col, row);
     FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
@@ -113,4 +116,16 @@ void FB_set_FULL_CELL(const char c,const FB_COLOUR FG,const FB_COLOUR BG, const 
         .FG_BG = (FG) | (BG << 4),
     };
     fb[index] = temp;
+}
+
+
+// Cursor
+
+
+
+// Public facing api
+
+void FB_print_string(const char *const s, const unsigned int length)
+{
+
 }

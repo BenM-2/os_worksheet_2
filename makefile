@@ -8,7 +8,7 @@ BUILD_DRIVERS = $(BUILD_DIR)drivers/
 BUILD_SOURCE = $(BUILD_DIR)source/
 
 CC = gcc
-CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -I$(SRC)/Include
+CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -I$(DRIVERS)/Include
 AS = nasm
 ASFLAGS = -f elf
 LDFLAGS = -T ./$(SRC)link.ld -melf_i386
@@ -22,8 +22,12 @@ DRIVERS_OBJECTS := $(patsubst $(DRIVERS)%.c,$(BUILD_DRIVERS)%.o,$(DRIVERS_C_FILE
 
 LOADER_OBJ      := $(BUILD_SOURCE)loader.o
 SRC_ASM_FILES   := $(filter-out $(SRC)loader.asm,$(wildcard $(SRC)*.asm))
-ASM_OBJECTS     := $(patsubst $(SRC)%.asm,$(BUILD_SOURCE)%.o,$(SRC_ASM_FILES))
+SRC_ASM_OBJECTS := $(patsubst $(SRC)%.asm,$(BUILD_SOURCE)%.o,$(SRC_ASM_FILES))
 
+DRIVERS_ASM_FILES := $(wildcard $(DRIVERS)*.asm)
+DRIVERS_ASM_OBJECTS := $(patsubst $(DRIVERS)%.asm,$(BUILD_DRIVERS)%.o,$(DRIVERS_ASM_FILES))
+
+BUILD_OBJECTS = $(LOADER_OBJ) $(SRC_ASM_OBJECTS) $(SRC_OBJECTS) $(DRIVERS_ASM_OBJECTS) $(DRIVERS_OBJECTS)
 
 .PHONY: qemu_run qemu_run_quiet qemu_run_curses telnet iso dirs clean
 
@@ -54,7 +58,7 @@ iso: $(BOOT)kernel.elf
 	-o os.iso \
 	iso
 
-$(BOOT)kernel.elf: $(LOADER_OBJ) $(SRC_OBJECTS) $(ASM_OBJECTS) $(DRIVERS_OBJECTS) | dirs
+$(BOOT)kernel.elf: $(BUILD_OBJECTS) | dirs
 	ld $(LDFLAGS) $^ -o $@
 
 $(BUILD_SOURCE)%.o: $(SRC)%.c | dirs
@@ -65,6 +69,10 @@ $(BUILD_SOURCE)%.o: $(SRC)%.asm | dirs
 
 $(BUILD_DRIVERS)%.o: $(DRIVERS)%.c | dirs
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DRIVERS)%.o: $(DRIVERS)%.asm | dirs
+	$(AS) $(ASFLAGS) $< -o $@
+
 
 clean:
 	rm -rf $(BUILD_DIR)
