@@ -57,6 +57,8 @@ void interrupts_install_idt()
     /*pic_remap(PIC_PIC1_OFFSET, PIC_PIC2_OFFSET);*/
     pic_remap(PIC_1_OFFSET, PIC_2_OFFSET);
 
+    outb(PIC_1_DATA, 0xFF);
+    outb(PIC_2_DATA, 0xFF);
     // Unmask keyboard interrupt (IRQ1)
     outb(0x21, inb(0x21) & ~(1 << 1));
 }
@@ -93,7 +95,8 @@ void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int inte
                         else
                         {
                             // Add the new character to the display
-                            FB_set_CHAR_CELL_INDEX(input,FB_get_cursor());
+                            FB_set_CHAR_CELL_INDEX(ascii,FB_get_cursor());
+                            FB_set_BG_CELL_INDEX(RED,FB_get_cursor());
                             FB_increment_cursor();
                         }
                     }

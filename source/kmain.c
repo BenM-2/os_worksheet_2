@@ -8,6 +8,7 @@
 // Includes
 #define NO_NAMESPACE
 #include "framebuffer.h"
+#include "hardware_interrupt_enabler.h"
 #include "interrupts.h"
 #include "kstring.h"
 //------------------------------------------------------------------------------
@@ -31,6 +32,8 @@ int kernel_main()
     screen_test();
 
     interrupts_install_idt();
+
+    enable_hardware_interrupts();
     
     return 0;
 }

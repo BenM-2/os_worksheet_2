@@ -43,8 +43,31 @@ qemu_run: | iso
 qemu_run_quiet: | iso
 	qemu-system-i386 -nographic -boot d -cdrom os.iso -m 32 
 
+# qemu_run_curses: | iso
+# 	qemu-system-i386 -display curses \
+#   -monitor telnet::45454,server,nowait \
+#   -serial mon::stdin \
+#   -boot d -cdrom os.iso -m 32 \
+#   -d cpu -D logQ.txt
+# qemu_run_curses: | iso
+# 	qemu-system-i386 -display curses \
+# 		-monitor telnet::45454,server,nowait \
+# 		-serial telnet::45455,server,nowait \
+# 		-boot d -cdrom os.iso -m 32 \
+# 		-d int,cpu_reset -D logQ.txt \
+# 		-trace 'ps2_*' -trace 'input_event_*'
 qemu_run_curses: | iso
-	qemu-system-i386 -display curses -monitor telnet::45454,server,nowait -serial mon:stdio -boot d -cdrom os.iso -m 32 -d cpu -D logQ.txt
+	qemu-system-i386 -display curses \
+	-monitor telnet::45454,server,nowait \
+	-chardev stdio,id=char0 \
+	-serial chardev:char0 \
+	-boot d \
+	-cdrom os.iso \
+	-m 32 \
+	-d cpu \
+	-no-reboot \
+	-no-shutdown \
+	-D logQ.txt
 
 telnet:
 	telnet localhost 45454
