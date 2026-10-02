@@ -8,12 +8,12 @@
 // Includes
 #define NO_NAMESPACE
 #include "framebuffer.h"
+#include "interrupts.h"
 #include "kstring.h"
 //------------------------------------------------------------------------------
 // Function Implementions
 
-
-int kernel_main()
+void screen_test()
 {
     set_BG_ALL(DARK_GREY);
     set_FG_ALL(WHITE);
@@ -24,5 +24,13 @@ int kernel_main()
     write_string(buf,strlen(buf));
     move_cursor(80);
     write_string(buf,strlen(buf));
+}
+
+int kernel_main()
+{
+    screen_test();
+
+    interrupts_install_idt();
+    
     return 0;
 }
