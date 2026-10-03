@@ -1,6 +1,8 @@
 #ifndef INCLUDE_INTERRUPTS
 #define INCLUDE_INTERRUPTS
 #include "type.h"
+#include "interrupt_callbacks.h"
+#include "pic.h"
 struct IDT
 {
     u16int size;
@@ -33,9 +35,13 @@ struct stack_state
     u32int cs;
     u32int eflags;
 }__attribute__((packed));
+
 void interrupt_handler(struct cpu_state cpu, u32int interrupt, struct stack_state stack);
 
 void interrupts_install_idt();
+
+void interrupts_cb_config(const Interrupt_callbacks *const callbacks_);
+
 // Wrappersaround ASM.
 void load_idt(u32int idt_address);
 void interrupt_handler_33();

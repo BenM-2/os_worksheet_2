@@ -1,16 +1,41 @@
+
+/**
+ * @file interrupts.c
+ * @author Ben Marples
+ * @brief Sends all interupts to their related callback defined under interpt_callbacks.h and instantiated used interrupt_cb_config()
+ */
+
+//------------------------------------------------------------------------------
+// Includes
 #include "interrupts.h"
-#include "pic.h"
 #include "io.h"
 #include "framebuffer.h"
 #include "keyboard.h"
+#include "interrupt_callbacks.h"
+
+//------------------------------------------------------------------------------
+// Definitions
 #define INTERRUPTS_DESCRIPTOR_COUNT 256
 #define INTERRUPTS_KEYBOARD 33
-#define INPUT_BUFFER_SIZE 256
-u8int input_buffer[INPUT_BUFFER_SIZE];
-u8int buffer_index = 0;
+// #define INPUT_BUFFER_SIZE 256
+
+static Interrupt_callbacks callbacks; // Keep callbacks constant though different calls
+
+// u8int input_buffer[INPUT_BUFFER_SIZE];
+// u8int buffer_index = 0;
+
 struct IDTDescriptor idt_descriptors[INTERRUPTS_DESCRIPTOR_COUNT];
 struct IDT idt;
 u32int BUFFER_COUNT;
+
+//------------------------------------------------------------------------------
+// Function Declarations
+void interrupts_init_descriptor(s32int index, u32int address);
+void interrupts_install_idt();
+void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int interrupt, __attribute__((unused)) struct stack_state stack);
+
+//------------------------------------------------------------------------------
+// Function Implementations
 void interrupts_init_descriptor(s32int index, u32int address)
 {
     idt_descriptors[index].offset_high = (address >> 16) & 0xFFFF; // offset bits 0..15
@@ -63,50 +88,19 @@ void interrupts_install_idt()
     outb(0x21, inb(0x21) & ~(1 << 1));
 }
 
+void interrupts_cb_config(const Interrupt_callbacks *const callbacks_)
+{
+    callbacks = *callbacks_;
+}
+
 void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int interrupt, __attribute__((unused)) struct stack_state stack)
 {
-    u8int input;
-    u8int ascii;
     switch (interrupt)
     {
     case INTERRUPTS_KEYBOARD:
-        while ((inb(0x64) & 1))
-        {
-            input = keyboard_read_scan_code();
-            // Only process if it's not a break code
-            if (!(input & 0x80))
-            {
-                if (input <= KEYBOARD_MAX_ASCII)
-                {
-                    ascii = keyboard_scan_code_to_ascii(input);
-                    if (ascii != 0)
-                    {
-                        // We have detected a backspace
-                        if (ascii == '\b')
-                        {
-                            // Remove the last character
-                        }
-                        // We have detected a newline
-                        else if (ascii == '\n')
-                        {
-                            // Move our position to a newline
-                        }
-                        // We have detected a regular character
-                        else
-                        {
-                            // Add the new character to the display
-                            FB_set_CHAR_CELL_INDEX(ascii,FB_get_cursor());
-                            FB_set_BG_CELL_INDEX(RED,FB_get_cursor());
-                            FB_increment_cursor();
-                        }
-                    }
-                }
-            }
-            buffer_index = (buffer_index + 1) % INPUT_BUFFER_SIZE;
-        }
-        pic_acknowledge(interrupt);
+        callbacks.keyboard_event(interrupt);
         break;
     default:
         break;
     }
-}    
+}
