@@ -30,6 +30,7 @@ u32int BUFFER_COUNT;
 
 //------------------------------------------------------------------------------
 // Function Declarations
+void interrupts_cb_config(const Interrupt_callbacks *const callbacks_);
 void interrupts_init_descriptor(s32int index, u32int address);
 void interrupts_install_idt();
 void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int interrupt, __attribute__((unused)) struct stack_state stack);
