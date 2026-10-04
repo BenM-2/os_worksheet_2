@@ -59,6 +59,7 @@ ERR_t TUI_CMD_bg(const int argc, char *argv[])
         if ((strcmp(argv[1], TUI_CMD_bg_opts[i].opt_str))==0)
         {
             TUI_CMD_bg_opts[i].opt_cb(TUI_CMD_bg_opts[i].opt_value);
+            break;
         }
     }
     return ERR_NONE;
