@@ -37,38 +37,41 @@ void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int inte
 
 //------------------------------------------------------------------------------
 // Function Implementations
+
+/**
+ * @brief Initialises a single IDT entry as a 32-bit interrupt gate.
+ *
+ * The gate descriptor is laid out as follows (high 32 bits, then low 32 bits):
+ *
+ * @code
+ * Bit:     | 31            16 | 15 | 14 13 | 12 | 11 10 9 8     | 7 6 5 | 4 3 2 1 0 |
+ * Content: | offset high      | P  | DPL   | S  | D and GateType| 0 0 0 | reserved  |
+ *
+ * Bit:     | 31            16 | 15            0 |
+ * Content: | segment selector | offset low      |
+ * @endcode
+ *
+ * - **P**: Present. 1 if the handler is present in memory, 0 if not.
+ *   Set to 0 for unused interrupts or for paging.
+ * - **DPL**: Descriptor Privilege Level, the privilege level the handler
+ *   can be called from (0, 1, 2, 3).
+ * - **S**: Storage Segment. Set to 0 for interrupt gates.
+ * - **D**: Size of gate (1 = 32 bits, 0 = 16 bits).
+ *
+ * @param index   IDT vector number to initialise (0-255).
+ * @param address Address of the assembly interrupt handler stub.
+ */
 void interrupts_init_descriptor(s32int index, u32int address)
 {
-    idt_descriptors[index].offset_high = (address >> 16) & 0xFFFF; // offset bits 0..15
-    idt_descriptors[index].offset_low = (address & 0xFFFF);        // offsetbits 16..31 ↪
-    idt_descriptors[index].segment_selector = 0x08;                // The second(code) segment selector in GDT : one segment is64b. ↪
-    idt_descriptors[index].reserved = 0x00;                        // Reserved.
+    idt_descriptors[index].offset_low = (address & 0xFFFF);        // offset bits 0..15
+    idt_descriptors[index].offset_high = (address >> 16) & 0xFFFF; // offset bits 16..31
+    idt_descriptors[index].segment_selector = 0x08;                // Kernel code segment in the GDT: one segment is 64 bytes.
+    idt_descriptors[index].reserved = 0x00;                        // Reserved
 
-    /*
-↪
-Bit:
-| 31
-5 | 4 3 2 1 0 |
-↪
-↪
-Content: | offset high
-0 0 | reserved
-16 | 15 | 14 13 | 12 | 11
-10 9 8 | 7 6
-| P | DPL | S | D and GateType | 0
-P If the handler is present in memory or not (1 = present, 0 = not
-present). Set to 0 for unused interrupts or for Paging.
-↪
-}
-DPL Descriptor Privilige Level, the privilege level the handler can
-be called from (0, 1, 2, 3).
-S Storage Segment. Set to 0 for interrupt gates.
-D Size of gate, (1 = 32 bits, 0 = 16 bits).
-*/
-
-    idt_descriptors[index].type_and_attr = (0x01 << 7) |
-                                           (0x00 << 6) | (0x00 << 5) | // DPL
-                                           0xe;
+    idt_descriptors[index].type_and_attr = (0x01 << 7) | // P: present
+                                           (0x00 << 6) | // DPL (high bit)
+                                           (0x00 << 5) | // DPL (low bit)
+                                           0x0E;         // D = 1 (32-bit), gate type = interrupt gate
 }
 
 void interrupts_install_idt()
