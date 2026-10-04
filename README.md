@@ -105,4 +105,143 @@ otherwise use
 make clean && make qemu_run_curses
 ```
 
-## Interupt Handlers
+## Interrupt Handlers
+
+Interrupts are set up in `interrupts.c`. The file builds the Interrupt Descriptor Table (IDT), remaps the PICs, and forwards each interrupt to a callback you register. The callback type lives in `interrupt_callbacks.h`.
+
+### How it works
+
+1. `interrupts_install_idt()` fills in the IDT entries, loads the table with `load_idt()`, and remaps the PICs.
+2. All IRQs are masked, then the keyboard (IRQ1) is unmasked.
+3. When an interrupt fires, the assembly stub calls `interrupt_handler()`, which switches on the interrupt number and calls the matching callback.
+
+The table has 256 descriptors. Each one is a 32-bit interrupt gate (present, DPL 0) using the code segment selector `0x08`.
+
+### Supported interrupts
+
+| Vector | Source   | Callback                      |
+|--------|----------|-------------------------------|
+| 33     | Keyboard | `callbacks.keyboard_event()`  |
+
+Any other vector is ignored by the default case.
+
+### Usage
+
+Register your callbacks, then install the IDT:
+
+```c
+#include "interrupts.h"
+#include "interrupt_callbacks.h"
+
+static void on_keyboard(u32int interrupt)
+{
+    // read the scancode and handle it
+}
+
+void kernel_setup(void)
+{
+    Interrupt_callbacks cbs = {
+        .keyboard_event = on_keyboard,
+    };
+
+    interrupts_cb_config(&cbs);
+    interrupts_install_idt();
+}
+```
+
+`interrupts_cb_config()` copies the struct, so it doesn't need to outlive the call.
+
+### Adding a new interrupt
+
+1. Add a vector define in `interrupts.c` (e.g. `#define INTERRUPTS_TIMER 32`).
+2. Add a callback field to `Interrupt_callbacks` in `interrupt_callbacks.h`.
+3. Write an assembly stub for the vector (like `interrupt_handler_33`) and register it with `interrupts_init_descriptor()` in `interrupts_install_idt()`.
+4. Add a `case` to the switch in `interrupt_handler()`.
+5. Unmask the IRQ on the PIC.
+
+
+
+# TUI Apps: 
+## Implemented commands
+
+| Command | Description                                  | Usage              | Source                          |
+|---------|----------------------------------------------|--------------------|---------------------------------|
+| [`bg`](#tui-apps-bg-command) | Set the framebuffer background colour | `bg <color>` | [`tui_apps.c`](./tui_apps.c) |
+
+Each command is implemented as a function named `TUI_CMD_<name>` with the signature:
+
+```c
+ERR_t TUI_CMD_<name>(const int argc, char *argv[]);
+```
+
+`argv[0]` is the command name, and the function returns `ERR_NONE` on success or an error code on failure.
+
+### Adding a command to this list
+
+1. Implement `TUI_CMD_<name>` in `tui_apps.c` and declare it in `tui_apps.h`.
+2. Add a row to the table above.
+3. Add a section below documenting its usage and return values (see the `bg` section for the format).
+
+
+## `bg` command
+
+Part of the kernel's text UI (`tui_apps.c`). Implements the `bg` shell command, which sets the background colour of the whole framebuffer.
+
+### Usage
+
+```
+bg <color>
+```
+
+| Argument  | Description                                |
+|-----------|--------------------------------------------|
+| `<color>` | One of the colour names listed below       |
+
+Example:
+
+```
+bg blue
+bg light-grey
+```
+
+If the wrong number of arguments is given, the command prints a usage message and returns `ERR_GENERIC`.
+
+### Supported colours
+
+| Standard  | Light / bright  |
+|-----------|-----------------|
+| `black`   | `light-grey`    |
+| `blue`    | `light-blue`    |
+| `green`   | `light-green`   |
+| `cyan`    | `light-cyan`    |
+| `red`     | `light-red`     |
+| `magenta` | `light-magenta` |
+| `brown`   | `light-brown`   |
+| `dark-grey` | `white`       |
+
+### How it works
+
+Colours are defined in a lookup table, `TUI_CMD_bg_opts[]`, where each entry holds:
+
+- `opt_str`: the colour name typed by the user
+- `opt_cb`: the framebuffer function to call (currently `FB_set_BG_ALL` for every entry)
+- `opt_value`: the `FB_COLOUR` value passed to that function
+
+`TUI_CMD_bg()` checks `argc`, then walks the table comparing `argv[1]` against each `opt_str` with `strcmp`. On a match it calls the entry's callback with its colour value.
+
+### Adding a colour
+
+New Colours Cannot be added due to the limit of the VGA text buffer
+
+### Return values
+
+| Value         | Meaning                          |
+|---------------|----------------------------------|
+| `ERR_NONE`    | Command completed                |
+| `ERR_GENERIC` | Wrong number of arguments        |
+
+### Dependencies
+
+- `tui_apps.h`: command and error type declarations
+- `framebuffer.h`: `FB_set_BG_ALL`, `FB_write_string`, `FB_COLOUR`
+- `kstring.h`: `strcmp`, `strlen`
