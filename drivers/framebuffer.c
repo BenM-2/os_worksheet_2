@@ -9,7 +9,7 @@
 #include "framebuffer.h"
 #ifndef FRAME_BUFFER_CUSTOM_CURSOR /* VGA cursor */
 #include "io.h"
-#endif 
+#endif
 //------------------------------------------------------------------------------
 // Function Declarations
 
@@ -39,6 +39,9 @@ void FB_set_CHAR_ALL(const char c);
 void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
 void FB_set_CHAR_CELL_INDEX(const char c, const unsigned int index);
 
+void FB_scroll();
+void FB_set_cursor_newline();
+int FB_get_current_row();
 //------------------------------------------------------------------------------
 // Function Implementations
 
@@ -88,7 +91,7 @@ unsigned short FB_get_cursor()
 
 void FB_move_cursor_row_col(const unsigned int col, const unsigned int row)
 {
-    FB_move_cursor(FB_ROW_COL_TO_INDEX(col,row));
+    FB_move_cursor(FB_ROW_COL_TO_INDEX(col, row));
 }
 
 static int FB_ROW_COL_TO_INDEX(const unsigned int col, const unsigned int row)
@@ -152,7 +155,7 @@ void FB_set_FG_CELL_INDEX(const FB_COLOUR c, const unsigned int index)
 void FB_set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
 {
     int index = FB_ROW_COL_TO_INDEX(col, row);
-    FB_set_BG_CELL_INDEX(c,index);
+    FB_set_BG_CELL_INDEX(c, index);
 }
 
 void FB_set_BG_CELL_INDEX(const FB_COLOUR c, const unsigned int index)
@@ -198,3 +201,43 @@ void FB_write_string(const char *const buff, const unsigned int length)
     }
 }
 
+void FB_scroll()
+{
+    FrameBuffer *const fb = (FrameBuffer *)FRAME_BUFFER_START;
+    for (int row = 0; row < (FB_MAX_ROW - 1); row++)
+    {
+        for (int col = 0; col < FB_MAX_COL; col++)
+        {
+            fb[FB_ROW_COL_TO_INDEX(col, row)] = fb[FB_ROW_COL_TO_INDEX(col, row + 1)];
+        }
+    }
+
+    /* clear the new bottom row */
+    for (int col = 0; col < FB_MAX_COL; col++)
+    {
+        fb[(FB_MAX_ROW - 1) * FB_MAX_COL + col].asci_char = ' ';
+    }
+}
+
+int FB_get_current_row()
+{
+    unsigned short index = FB_get_cursor();
+    int current_row = index / FB_MAX_COL;
+    return current_row;
+}
+
+void FB_set_cursor_newline()
+{
+    int current_row = FB_get_current_row();  
+    if ((current_row < (FB_MAX_ROW - 1)))
+    {
+        current_row++;
+    }
+    else
+    {
+        FB_scroll();
+        current_row = FB_MAX_ROW - 1;
+    }
+
+    FB_move_cursor(FB_MAX_COL * current_row);
+}

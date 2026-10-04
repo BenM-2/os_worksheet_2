@@ -43,7 +43,6 @@ typedef enum
 #define FB_lower_mask 0xF0
 #define FB_upper_mask 0x0F
 
-
 //------------------------------------------------------------------------------
 // Cursor implementation
 #ifndef FRAME_BUFFER_CUSTOM_CURSOR /* VGA cursor */
@@ -82,59 +81,92 @@ void FB_set_CHAR_ALL(const char c);
 void FB_set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row);
 void FB_set_CHAR_CELL_INDEX(const char c, const unsigned int index);
 
+void FB_scroll();
+void FB_set_cursor_newline();
+int FB_get_current_row();
+
 #ifdef NO_NAMESPACE
 // Cursor
-static inline void move_cursor(unsigned short pos) {
+static inline void move_cursor(unsigned short pos)
+{
     FB_move_cursor(pos);
 }
-static inline void move_cursor_row_col(const unsigned int col, const unsigned int row) {
+static inline void move_cursor_row_col(const unsigned int col, const unsigned int row)
+{
     FB_move_cursor_row_col(col, row);
 }
-static inline unsigned short get_cursor(void) {
+static inline unsigned short get_cursor(void)
+{
     return FB_get_cursor();
 }
-static inline void increment_cursor(void) {
+static inline void increment_cursor(void)
+{
     FB_increment_cursor();
 }
-static inline void decrement_cursor(void) {
+static inline void decrement_cursor(void)
+{
     FB_decrement_cursor();
 }
-static inline void write_string(const char *const buff, const unsigned int length) {
+static inline void write_string(const char *const buff, const unsigned int length)
+{
     FB_write_string(buff, length);
 }
 
 // FG
-static inline void set_FG_ALL(const FB_COLOUR c) {
+static inline void set_FG_ALL(const FB_COLOUR c)
+{
     FB_set_FG_ALL(c);
 }
-static inline void set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row) {
+static inline void set_FG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
+{
     FB_set_FG_CELL(c, col, row);
 }
-static inline void set_FG_CELL_INDEX(const FB_COLOUR c, const unsigned int index) {
+static inline void set_FG_CELL_INDEX(const FB_COLOUR c, const unsigned int index)
+{
     FB_set_FG_CELL_INDEX(c, index);
 }
 
 // BG
-static inline void set_BG_ALL(const FB_COLOUR c) {
+static inline void set_BG_ALL(const FB_COLOUR c)
+{
     FB_set_BG_ALL(c);
 }
-static inline void set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row) {
+static inline void set_BG_CELL(const FB_COLOUR c, const unsigned int col, const unsigned int row)
+{
     FB_set_BG_CELL(c, col, row);
 }
-static inline void set_BG_CELL_INDEX(const FB_COLOUR c, const unsigned int index) {
+static inline void set_BG_CELL_INDEX(const FB_COLOUR c, const unsigned int index)
+{
     FB_set_BG_CELL_INDEX(c, index);
 }
 
 // CHAR
-static inline void set_CHAR_ALL(const char c) {
+static inline void set_CHAR_ALL(const char c)
+{
     FB_set_CHAR_ALL(c);
 }
-static inline void set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row) {
+static inline void set_CHAR_CELL(const char c, const unsigned int col, const unsigned int row)
+{
     FB_set_CHAR_CELL(c, col, row);
 }
-static inline void set_CHAR_CELL_INDEX(const char c, const unsigned int index) {
+static inline void set_CHAR_CELL_INDEX(const char c, const unsigned int index)
+{
     FB_set_CHAR_CELL_INDEX(c, index);
 }
-#endif
 
-#endif
+static inline void scroll()
+{
+    FB_scroll();
+}
+static inline void set_cursor_newline()
+{
+    FB_set_cursor_newline();
+}
+
+static inline int get_current_row()
+{
+    return FB_get_current_row();
+}
+#endif // NO_NAMESPACE
+
+#endif // FRAME_BUFFER_API
