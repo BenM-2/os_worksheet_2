@@ -58,6 +58,9 @@ void tui_start()
 void on_backspace()
 {
     decrement_cursor();
+    
+    // Check if last char of path if so dont set last char to ' '
+
     set_CHAR_CELL_INDEX(' ', FB_get_cursor());
 }
 

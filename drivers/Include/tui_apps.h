@@ -27,12 +27,14 @@ typedef struct
 // Apps
 
 ERR_t TUI_CMD_bg(const int argc, char *argv[]);
+ERR_t TUI_CMD_fg(const int argc, char *argv[]);
 
 //------------------------------------------------------------------------------
 // App Table
 
 static const TUI_CMD TUI_app_table[] = {
-    {.cmd="bg",.cmd_cb=TUI_CMD_bg}
+    {.cmd="bg",.cmd_cb=TUI_CMD_bg},
+    {.cmd="fg",.cmd_cb=TUI_CMD_fg}
 };
 
 #endif
