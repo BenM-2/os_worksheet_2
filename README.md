@@ -245,3 +245,67 @@ New Colours Cannot be added due to the limit of the VGA text buffer
 - `tui_apps.h`: command and error type declarations
 - `framebuffer.h`: `FB_set_BG_ALL`, `FB_write_string`, `FB_COLOUR`
 - `kstring.h`: `strcmp`, `strlen`
+
+
+## `fg` command
+
+Part of the kernel's text UI (`tui_apps.c`). Implements the `fg` shell command, which sets the foreground colour of the whole framebuffer.
+
+### Usage
+
+```
+fg <color>
+```
+
+| Argument  | Description                                |
+|-----------|--------------------------------------------|
+| `<color>` | One of the colour names listed below       |
+
+Example:
+
+```
+fg blue
+fg light-grey
+```
+
+If the wrong number of arguments is given, the command prints a usage message and returns `ERR_GENERIC`.
+
+### Supported colours
+
+| Standard  | Light / bright  |
+|-----------|-----------------|
+| `black`   | `light-grey`    |
+| `blue`    | `light-blue`    |
+| `green`   | `light-green`   |
+| `cyan`    | `light-cyan`    |
+| `red`     | `light-red`     |
+| `magenta` | `light-magenta` |
+| `brown`   | `light-brown`   |
+| `dark-grey` | `white`       |
+
+### How it works
+
+Colours are defined in a lookup table, `TUI_CMD_fg_opts[]`, where each entry holds:
+
+- `opt_str`: the colour name typed by the user
+- `opt_cb`: the framebuffer function to call (currently `FB_set_fg_ALL` for every entry)
+- `opt_value`: the `FB_COLOUR` value passed to that function
+
+`TUI_CMD_fg()` checks `argc`, then walks the table comparing `argv[1]` against each `opt_str` with `strcmp`. On a match it calls the entry's callback with its colour value.
+
+### Adding a colour
+
+New Colours Cannot be added due to the limit of the VGA text buffer
+
+### Return values
+
+| Value         | Meaning                          |
+|---------------|----------------------------------|
+| `ERR_NONE`    | Command completed                |
+| `ERR_GENERIC` | Wrong number of arguments        |
+
+### Dependencies
+
+- `tui_apps.h`: command and error type declarations
+- `framebuffer.h`: `FB_set_fg_ALL`, `FB_write_string`, `FB_COLOUR`
+- `kstring.h`: `strcmp`, `strlen`
