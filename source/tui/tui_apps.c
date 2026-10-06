@@ -14,6 +14,7 @@
 // Function Declarations
 ERR_t TUI_CMD_bg(const int argc, char *argv[]);
 ERR_t TUI_CMD_fg(const int argc, char *argv[]);
+ERR_t TUI_CMD_clear(const int argc, char *argv[]);
 
 //------------------------------------------------------------------------------
 // Function Implementations
@@ -71,6 +72,7 @@ ERR_t TUI_CMD_bg(const int argc, char *argv[])
     {
         FB_set_cursor_newline();
         FB_write_string(usage_msg, strlen(usage_msg));
+        FB_set_cursor_newline();
         return ERR_GENERIC;
     }
 
@@ -87,6 +89,7 @@ ERR_t TUI_CMD_bg(const int argc, char *argv[])
     
     FB_set_cursor_newline();
     FB_write_string(usage_msg, strlen(usage_msg));
+    FB_set_cursor_newline();
     return ERR_GENERIC;
 }
 
@@ -97,6 +100,7 @@ ERR_t TUI_CMD_fg(const int argc, char *argv[])
     {
         FB_set_cursor_newline();
         FB_write_string(usage_msg, strlen(usage_msg));
+        FB_set_cursor_newline();
         return ERR_GENERIC;
     }
 
@@ -112,5 +116,13 @@ ERR_t TUI_CMD_fg(const int argc, char *argv[])
     }
     FB_set_cursor_newline();
     FB_write_string(usage_msg, strlen(usage_msg));
+    FB_set_cursor_newline();
     return ERR_GENERIC;
+}
+
+ERR_t TUI_CMD_clear(__attribute__((unused)) const int argc, __attribute__((unused))char *argv[])
+{
+    FB_move_cursor(0);
+    FB_set_CHAR_ALL(' ');
+    return ERR_NONE;
 }

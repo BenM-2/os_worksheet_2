@@ -9,6 +9,7 @@
 #include "framebuffer.h"
 #ifndef FRAME_BUFFER_CUSTOM_CURSOR /* VGA cursor */
 #include "io.h"
+#include "kstring.h"
 #endif
 //------------------------------------------------------------------------------
 // Function Declarations
@@ -42,6 +43,7 @@ void FB_set_CHAR_CELL_INDEX(const char c, const unsigned int index);
 void FB_scroll();
 void FB_set_cursor_newline();
 int FB_get_current_row();
+void FB_write_DEBUG_string(const char *const buff, const unsigned int length);
 //------------------------------------------------------------------------------
 // Function Implementations
 
@@ -240,4 +242,20 @@ void FB_set_cursor_newline()
     }
 
     FB_move_cursor(FB_MAX_COL * current_row);
+}
+
+
+void FB_write_DEBUG_string(const char *const buff, const unsigned int length)
+{
+    for (int i = (FB_MAX_ROW - 1) * FB_MAX_COL;i < FB_MAX_COL * FB_MAX_ROW;i++)
+    {
+        FB_set_CHAR_CELL_INDEX(' ',i);
+    }
+    const char *DEBUG_MSG = "DEBUG: ";
+    const int cursor = FB_get_cursor();
+    FB_move_cursor((FB_MAX_ROW - 1) * FB_MAX_COL);
+    FB_write_string(DEBUG_MSG,strlen(DEBUG_MSG));
+    FB_write_string(buff,length);
+
+    FB_move_cursor(cursor);
 }

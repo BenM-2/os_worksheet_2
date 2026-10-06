@@ -84,7 +84,7 @@ void FB_set_CHAR_CELL_INDEX(const char c, const unsigned int index);
 void FB_scroll();
 void FB_set_cursor_newline();
 int FB_get_current_row();
-
+void FB_write_DEBUG_string(const char *const buff, const unsigned int length);
 #ifdef NO_NAMESPACE
 // Cursor
 static inline void move_cursor(unsigned short pos)

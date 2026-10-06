@@ -22,6 +22,7 @@
 #define MAX_PATH_LENGTH 10
 
 static const char *const PATH = "~:>";
+static int FB_CMD_START_INDEX = 0;
 
 //------------------------------------------------------------------------------
 // Function Declarations
@@ -34,6 +35,10 @@ void write_path();
 
 //------------------------------------------------------------------------------
 // Function Implementations
+static void update_FB_CMD_START_INDEX()
+{
+    FB_CMD_START_INDEX = FB_get_cursor();
+}
 
 void tui_start()
 {
@@ -53,14 +58,18 @@ void tui_start()
 
     screen_init();
     write_path();
+    update_FB_CMD_START_INDEX();
 }
 
 void on_backspace()
 {
     decrement_cursor();
-    
-    // Check if last char of path if so dont set last char to ' '
 
+    if (FB_get_cursor() < FB_CMD_START_INDEX)
+    {
+        increment_cursor();
+        return;
+    }
     set_CHAR_CELL_INDEX(' ', FB_get_cursor());
 }
 
@@ -69,6 +78,7 @@ void on_backspace()
 
 void on_newline()
 {
+    int command_ran = 0;
     int buf_len = 0;
     char buf[256];
     // Get args
@@ -78,8 +88,8 @@ void on_newline()
     // Readline
     int fb_index = FB_get_cursor();
     FrameBuffer *fb = (FrameBuffer *)FRAME_BUFFER_START;
-    int start_row_index = get_current_row() * FB_MAX_COL;
-    for (int i = start_row_index; i < fb_index; i++)
+    // int start_row_index = get_current_row() * FB_MAX_COL;
+    for (int i = FB_CMD_START_INDEX; i < fb_index; i++)
     {
         buf[buf_len] = fb[i].asci_char;
         buf_len++;
@@ -87,7 +97,7 @@ void on_newline()
     buf[buf_len] = '\0'; // end of arr
     // mutate array in place
 
-    char *arg = &buf[0] + strlen(PATH);
+    char *arg = &buf[0];
     while (*arg != '\0')
     {
         while (*arg == ' ')
@@ -109,6 +119,8 @@ void on_newline()
     }
 
     argv[argc] = 0;
+    
+    FB_write_DEBUG_string(buf,buf_len);
 
     int cmd_length = sizeof(TUI_app_table) / sizeof(TUI_app_table[0]);
     for (int i = 0; i < cmd_length; i++)
@@ -116,13 +128,18 @@ void on_newline()
         if ((strcmp(argv[0], TUI_app_table[i].cmd)) == 0)
         {
             TUI_app_table[i].cmd_cb(argc, argv);
+            command_ran++;
             break;
         }
     }
     //  put program on newline
-    set_cursor_newline();
+    if (!command_ran)
+    {
+        FB_set_cursor_newline();
+    }
 
     write_path();
+    update_FB_CMD_START_INDEX();
 }
 
 void on_char(const char ascii)
