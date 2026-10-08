@@ -99,6 +99,7 @@ void interrupts_cb_config(const Interrupt_callbacks *const callbacks_)
 
 void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int interrupt, __attribute__((unused)) struct stack_state stack)
 {
+    FB_write_DEBUG_string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",interrupt);
     switch (interrupt)
     {
     case INTERRUPTS_KEYBOARD:

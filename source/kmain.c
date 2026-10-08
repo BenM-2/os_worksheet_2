@@ -12,15 +12,21 @@
 #include "interrupts.h"
 #include "io.h"
 #include "tui.h"
+#include "gdt.h"
 
 //------------------------------------------------------------------------------
 // Function Implementions
 
 int kernel_main()
 {
+
+    gdt_init();
+
     tui_start();
 
     interrupts_install_idt();
+
+    // FB_write_DEBUG_string("TEST",4);
 
     enable_hardware_interrupts();
 

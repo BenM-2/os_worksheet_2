@@ -22,3 +22,24 @@ inb:
     mov dx, [esp + 4]
     in al, dx
     ret
+
+global lgdt_pub
+; lgdt_pub loads the gdt entry provided from the stack
+; stack: [esp + 4] pointer to the gdt entry
+; [esp] The return address 
+lgdt_pub:
+    mov     eax,[esp + 4]
+    lgdt    [eax] 
+    
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    jmp 0x08:.flush_cs
+
+.flush_cs:
+    ret
+

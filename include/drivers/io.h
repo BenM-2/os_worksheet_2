@@ -30,4 +30,13 @@ void outb(unsigned short port, unsigned char data);
 The read byte
 */
 unsigned char inb(unsigned short port);
+
+
+
+struct gdt_ptr{
+    unsigned short size;
+    unsigned int address;
+} __attribute__((packed));
+void lgdt_pub(struct gdt_ptr *ptr);
+
 #endif /* IO_H */

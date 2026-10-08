@@ -11,7 +11,7 @@
 #include "interrupts.h"
 #include "io.h"
 #include "keyboard.h"
-
+#include "framebuffer.h"
 //------------------------------------------------------------------------------
 // Definititions / Vars
 static TUI_keyboard_Callbacks callbacks;
@@ -33,7 +33,6 @@ void tui_keyboard_callback(const u32int interrupt)
 {
     u8int input;
     u8int ascii;
-
     while ((inb(0x64) & 1))
     {
         input = keyboard_read_scan_code();
