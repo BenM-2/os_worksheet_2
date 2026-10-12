@@ -19,6 +19,7 @@
 
 int kernel_main()
 {
+    disable_hardware_interrupts();
 
     gdt_init();
 
