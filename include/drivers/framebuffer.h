@@ -35,7 +35,7 @@ typedef enum
     WHITE,
 } FB_COLOUR;
 
-#define FRAME_BUFFER_START 0x000B8000
+#define FRAME_BUFFER_START 0xC00B8000
 
 #define FB_MAX_COL 80
 #define FB_MAX_ROW 25

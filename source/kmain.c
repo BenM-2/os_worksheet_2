@@ -23,15 +23,15 @@ typedef void (*call_module_t)(void);
 
 int kernel_main(unsigned int ebx)
 {
-    multiboot_info_t *mbinfo = (multiboot_info_t *)ebx;
+    // multiboot_info_t *mbinfo = (multiboot_info_t *)ebx;
     
-    if ((mbinfo->flags & MULTIBOOT_INFO_MODS) && mbinfo->mods_count == 1 &&mbinfo->mods_count == 1)
-    {
-        multiboot_module_t *modules = (multiboot_module_t *)mbinfo->mods_addr;
-        call_module_t start_progam = (call_module_t)modules[0].mod_start;
-        start_progam();
-        return 0;
-    }
+    // if ((mbinfo->flags & MULTIBOOT_INFO_MODS) && mbinfo->mods_count == 1 &&mbinfo->mods_count == 1)
+    // {
+    //     multiboot_module_t *modules = (multiboot_module_t *)mbinfo->mods_addr;
+    //     call_module_t start_progam = (call_module_t)modules[0].mod_start;
+    //     start_progam();
+    //     return 0;
+    // }
 
     disable_hardware_interrupts();
 
