@@ -2,8 +2,9 @@
 global loader                               ; entry symbol for ELF
 extern kernel_main
     MAGIC_NUMBER        equ 0x1BADB002      ; Define the magic number constant
-    FLAGS               equ 0x0             ; Multiboot flags
-    CHECKSUM            equ -MAGIC_NUMBER   ; Calculate the checksum 
+    ALIGN_MODULES       equ 0x00000001      ; Tell Grub to align modules
+    ; FLAGS               equ 0x0             ; Multiboot flags
+    CHECKSUM            equ -(MAGIC_NUMBER+ALIGN_MODULES)   ; Calculate the checksum 
                                             ; magic number + checksum + flags should = 0
     KERNEL_STACK_SIZE   equ 4096            ; Size of the stack in Bytes
     section .bss
@@ -15,12 +16,14 @@ extern kernel_main
     section .text                       ; start of the text (code) section
     align 4                             ; code must be 4 byte alligned
         dd MAGIC_NUMBER                 ; write the magic number to the machine code,
-        dd FLAGS                        ; and flags,
+        dd ALIGN_MODULES                ; Write the align modules instruction
+        ; dd FLAGS                        ; and flags,
         dd CHECKSUM                     ; and the checksum.
 
     loader:                             ; The loader label (defined as entry point in the linker script)
         mov eax, 0xCAFEBABE             ; place the number 0xCAFEBABE In the eax register
         mov esp, kernel_stack + KERNEL_STACK_SIZE ; point esp to the start of the stack (end of memory area)
+        push dword ebx                            ; push eax to be called in c
         call kernel_main
     
     .loop:
