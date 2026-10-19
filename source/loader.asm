@@ -2,7 +2,7 @@
 global loader                               ; entry symbol for ELF
 extern kernel_main
 MAGIC_NUMBER        equ 0x1BADB002      ; Define the magic number constant
-ALIGN_MODULES       equ 0x00000001      ; Tell Grub to align modules
+ALIGN_MODULES       equ 0x00000003      ; Tell Grub to align modules + get meminfo
 CHECKSUM            equ -(MAGIC_NUMBER+ALIGN_MODULES)   ; Calculate the checksum 
                                         ; magic number + checksum + flags should = 0
 KERNEL_STACK_SIZE   equ 4096            ; Size of the stack in Bytes
@@ -47,7 +47,7 @@ higher_half:
     mov dword [boot_page_directory],0
     invlpg [0]
 
-    mov esp, kernel_stack
+    mov esp, kernel_stack_top
     mov eax, MAGIC_NUMBER
     add ebx, KERNEL_VBASE
     push dword ebx
@@ -61,3 +61,4 @@ align 4096
 boot_page_directory:    resb 4096
 boot_page_table:        resb 4096
 kernel_stack:           resb KERNEL_STACK_SIZE
+kernel_stack_top:
