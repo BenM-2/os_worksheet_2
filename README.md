@@ -9,13 +9,29 @@
 | GCC   | C compilation and linking |
 | NASM  | Assembly compilation      |
 
-## Todo
+## Completion
+I have completed everything until `section 10.2`/`page 63` in the [The little book about OS development](https://littleosbook.github.io/) 
+
+## Todo 
 |Task| Desc | Time | Priority |
 |-|-|-|-|
-|Finish Frame buffer api| Complete full api spec as listed under [FB API](#functions)|2 Days|5|
-|Interupts | Implement Interupt Handler under [TBD](#interupt-handlers) | TBD | 4 |
-|Keyboard Handler| Implement full keyboard support | TBD | 3 |
-|TUI| Implement a Set of instructions for tinyOS | TBD | 2 |
+| Fix memory type check | In `Release_All_Usable_Mem`, change `type & MULTIBOOT_MEMORY_AVAILABLE` to `type == MULTIBOOT_MEMORY_AVAILABLE` so ACPI reclaimable and bad RAM aren't freed | 5 min | High |
+| Fix `release_region` rounding | Round the start **up** and the end **down** so only fully usable pages are freed (keep `reserve_region` as is) | 10 min | High |
+| Add `page_alloc` / `page_free` | First-fit scan of the bitmap that returns a physical address, 0 on out of memory. Declare both in `page_frame_allocation.h` | 30 min | High |
+| Export boot tables | Add `global boot_page_directory` and `global boot_page_table` to the loader asm | 5 min | High |
+| Reserve slot frames | In `page_init`, call `reserve_region(0x3FE000, 0x400000)` so the allocator never hands out the temp-slot frames | 5 min | High |
+| Check kernel end address | Confirm `Boot_Vars.k_p_end` is below `0x3FE000` so the kernel, bss and bitmap don't overlap the slots | 10 min | High |
+| Write `kmap` | Temp-mapping helper using PTE 1022/1023 of `boot_page_table`, then `cpu_invlpg`. Keep it in the same file as `pd_create` and `map_page` | 20 min | High |
+| Add PTE/PDE constants | Put the `PTE_*` and `PDE_*` flag defines and the `map_page` prototype in `paging.h` | 10 min | High |
+| Write `pd_create` | Allocate a frame, zero it through slot 0, copy PDEs 768-1023 from `boot_page_directory` | 20 min | High |
+| Write `map_page` | Split the address, create the page table on demand (slot 0 for PD, slot 1 for PT), write the PTE, flush with `cpu_invlpg` | 30 min | High |
+| Test the switch | Create a PD, map a test page, `cpu_write_cr3`, and confirm serial output still works (a triple fault means the kernel PDEs weren't copied or the running code isn't mapped) | 30 min | High |
+| Bump kernel stack | Increase `KERNEL_STACK_SIZE` from 4 KB to 16 KB | 2 min | Medium |
+| Keep GRUB's magic value | Don't overwrite `eax` with `0x1BADB002`. Save GRUB's `0x2BADB002` and check it in `kernel_main` | 10 min | Low |
+| Add a `kernel_pd` template | Stop copying from `boot_page_directory` and use a dedicated variable as the source of truth for kernel PDEs | 15 min | Low |
+| Handle new kernel PDEs | Pre-create all kernel PDEs at boot, or sync them across address spaces on demand | 1 hr | Low |
+| Write `unmap_page` | Clear the PTE and flush the TLB entry (optionally free empty page tables) | 30 min | Low |
+| Make slots reentrant | Add a lock or per-CPU slots once you have interrupts or preemption that call `map_page` | 1 hr+ | Low |
 
 ## Task 1 
 ### Overview

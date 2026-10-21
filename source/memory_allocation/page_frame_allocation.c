@@ -1,5 +1,6 @@
 
 #include "page_frame_allocation.h"
+#include "paging.h"
 
 static page_type pages[BITMAP_BYTES];
 
