@@ -1,6 +1,12 @@
+/**
+ * @file page_frame_allocation.c
+ * @author Ben Marples
+ * @brief 
+ */
 
 #include "page_frame_allocation.h"
 #include "paging.h"
+#include "err.h"
 
 static page_type pages[BITMAP_BYTES];
 
@@ -18,15 +24,15 @@ static void panic(void) {
     while (1) asm volatile("hlt");
 }
 
-// static bool ret_page_index(int index)
-// {
-//     int bit_index = index % SIZEOF_PAGE_STORAGE;
-//     page_type bitmask = 1 << bit_index;
+static bool ret_page_index(int index)
+{
+    int bit_index = index % SIZEOF_PAGE_STORAGE;
+    page_type bitmask = 1 << bit_index;
 
-//     page_type data = pages[index / SIZEOF_PAGE_STORAGE] & bitmask;
-//     data = data >> bit_index;
-//     return (bool)data;
-// }
+    page_type data = pages[index / SIZEOF_PAGE_STORAGE] & bitmask;
+    data = data >> bit_index;
+    return (bool)data;
+}
 
 static void set_page_index(int index, bool value)
 {
@@ -77,7 +83,7 @@ static void Release_All_Usable_Mem(const struct multiboot_info *multiboot_info)
     {
         const struct multiboot_mmap_entry *current_entry = (struct multiboot_mmap_entry *)(current_physical + KERNEL_VIRTUAL_BASE);
 
-        bool is_usable_ram = (current_entry->type & MULTIBOOT_MEMORY_AVAILABLE) && (current_entry->addr < FOUR_GIGABYTES);
+        bool is_usable_ram = (current_entry->type == MULTIBOOT_MEMORY_AVAILABLE) && (current_entry->addr < FOUR_GIGABYTES);
 
         if (is_usable_ram)
         {
@@ -112,4 +118,31 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
 
     reserve_region(multiboot_info->mmap_addr,
                    multiboot_info->mmap_addr + multiboot_info->mmap_length);
+}
+
+/**
+ * @brief Returns the first free `4KB` page available.
+ * @return `0` if no free pages exist; returns Physical page address otherwise
+ */
+u32int page_alloc()
+{
+    u32int page = 0; // Err page
+
+    for (u32int pos = 1;pos < MAX_PAGES; pos++ )
+    {
+        page = ret_page_index(pos);
+        if (page == 0) {break;};
+    }
+
+    page *= PAGE_4KB;
+    
+    return page;
+}
+
+/**
+ * @brief Frees the Region on memory from page -> Page + `4KB`
+ */
+void page_free(u32int page)
+{
+    release_region(page,page + PAGE_4KB);
 }
