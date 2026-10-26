@@ -15,9 +15,6 @@ I have completed everything until `section 10.2`/`page 63` in the [The little bo
 ## Todo 
 |Task| Desc | Time | Priority |
 |-|-|-|-|
-| Fix memory type check | In `Release_All_Usable_Mem`, change `type & MULTIBOOT_MEMORY_AVAILABLE` to `type == MULTIBOOT_MEMORY_AVAILABLE` so ACPI reclaimable and bad RAM aren't freed | 5 min | High |
-| Fix `release_region` rounding | Round the start **up** and the end **down** so only fully usable pages are freed (keep `reserve_region` as is) | 10 min | High |
-| Add `page_alloc` / `page_free` | First-fit scan of the bitmap that returns a physical address, 0 on out of memory. Declare both in `page_frame_allocation.h` | 30 min | High |
 | Export boot tables | Add `global boot_page_directory` and `global boot_page_table` to the loader asm | 5 min | High |
 | Reserve slot frames | In `page_init`, call `reserve_region(0x3FE000, 0x400000)` so the allocator never hands out the temp-slot frames | 5 min | High |
 | Check kernel end address | Confirm `Boot_Vars.k_p_end` is below `0x3FE000` so the kernel, bss and bitmap don't overlap the slots | 10 min | High |

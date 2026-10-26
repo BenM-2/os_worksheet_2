@@ -56,8 +56,9 @@ higher_half:
 .loop:
         jmp .loop
     
-section .bss
-align 4096
+section .bss align=4096
+global boot_page_directory
+global boot_page_table
 boot_page_directory:    resb 4096
 boot_page_table:        resb 4096
 kernel_stack:           resb KERNEL_STACK_SIZE

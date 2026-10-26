@@ -9,5 +9,6 @@ typedef short s16int;
 typedef unsigned char u8int;
 typedef char s8int;
 typedef unsigned long long u64int;
+typedef u32int usize;
 
 #endif

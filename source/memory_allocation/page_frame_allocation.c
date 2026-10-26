@@ -7,6 +7,7 @@
 #include "page_frame_allocation.h"
 #include "paging.h"
 #include "err.h"
+#include "type.h"
 
 static page_type pages[BITMAP_BYTES];
 
@@ -118,6 +119,8 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
 
     reserve_region(multiboot_info->mmap_addr,
                    multiboot_info->mmap_addr + multiboot_info->mmap_length);
+
+    reserve_region(0x3FE000,0x400000); // Temp slot frames
 }
 
 /**
@@ -130,19 +133,42 @@ u32int page_alloc()
 
     for (u32int pos = 1;pos < MAX_PAGES; pos++ )
     {
-        page = ret_page_index(pos);
-        if (page == 0) {break;};
+        if (ret_page_index(pos) == EMPTY)
+        {
+            set_page_index(pos,FULL);
+            return pos * PAGE_4KB;
+        }
     }
 
-    page *= PAGE_4KB;
-    
     return page;
 }
 
 /**
  * @brief Frees the Region on memory from page -> Page + `4KB`
  */
-void page_free(u32int page)
+void page_free(usize page)
 {
     release_region(page,page + PAGE_4KB);
+}
+
+extern usize boot_page_directory;
+
+
+typedef enum{
+    KMAP_SLOT0 = 0xC03FE000u, // PTE 1022
+    KMAP_SLOT1 = 0xC03FF000u, // PTE 1023
+} KMAP_SLOT;
+
+#define PTE_PRESENT 0x1
+#define PTE_WRITE   0x10
+
+
+void *kmap(int slot, usize phys) 
+{
+    usize mask = 0xFFFFF000; 
+
+    ((usize*)boot_page_directory)[1022 + slot] = (phys & mask) | PTE_PRESENT | PTE_WRITE;
+    void * page =(void *)( slot ? (usize)KMAP_SLOT0 : (usize)KMAP_SLOT1);
+    asm_invlpg(page);
+    return page;
 }
