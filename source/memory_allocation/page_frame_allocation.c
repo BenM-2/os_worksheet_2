@@ -1,29 +1,18 @@
 /**
  * @file page_frame_allocation.c
  * @author Ben Marples
- * @brief 
+ * @brief
  */
 
 #include "page_frame_allocation.h"
 #include "paging.h"
 #include "err.h"
 #include "type.h"
+#include "kmem.h"
 
 static page_type pages[BITMAP_BYTES];
 
 #include "io.h"
-static void serial_putc(char c) {
-    outb(0x3F8, c);
-}
-
-static void serial_puts(const char *s) {
-    while (*s) serial_putc(*s++);
-}
-
-static void panic(void) {
-    serial_puts("PANIC at page_init\n");
-    while (1) asm volatile("hlt");
-}
 
 static bool ret_page_index(int index)
 {
@@ -120,22 +109,22 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
     reserve_region(multiboot_info->mmap_addr,
                    multiboot_info->mmap_addr + multiboot_info->mmap_length);
 
-    reserve_region(0x3FE000,0x400000); // Temp slot frames
+    reserve_region(0x3FE000, 0x400000); // Temp slot frames
 }
 
 /**
  * @brief Returns the first free `4KB` page available.
  * @return `0` if no free pages exist; returns Physical page address otherwise
  */
-u32int page_alloc()
+usize page_alloc()
 {
-    u32int page = 0; // Err page
+    usize page = 0; // Err page
 
-    for (u32int pos = 1;pos < MAX_PAGES; pos++ )
+    for (usize pos = 1; pos < MAX_PAGES; pos++)
     {
         if (ret_page_index(pos) == EMPTY)
         {
-            set_page_index(pos,FULL);
+            set_page_index(pos, FULL);
             return pos * PAGE_4KB;
         }
     }
@@ -148,27 +137,35 @@ u32int page_alloc()
  */
 void page_free(usize page)
 {
-    release_region(page,page + PAGE_4KB);
+    release_region(page, page + PAGE_4KB);
 }
 
-extern usize boot_page_directory;
-
-
-typedef enum{
-    KMAP_SLOT0 = 0xC03FE000u, // PTE 1022
-    KMAP_SLOT1 = 0xC03FF000u, // PTE 1023
-} KMAP_SLOT;
-
-#define PTE_PRESENT 0x1
-#define PTE_WRITE   0x10
-
-
-void *kmap(int slot, usize phys) 
+void *kmap(int slot, usize phys)
 {
-    usize mask = 0xFFFFF000; 
+    usize mask = 0xFFFFF000;
 
-    ((usize*)boot_page_directory)[1022 + slot] = (phys & mask) | PTE_PRESENT | PTE_WRITE;
-    void * page =(void *)( slot ? (usize)KMAP_SLOT0 : (usize)KMAP_SLOT1);
+    ((usize *)boot_page_directory)[1022 + slot] = (phys & mask) | PTE_PRESENT | PTE_RW;
+    void *page = (void *)(slot ? (usize)KMAP_SLOT0 : (usize)KMAP_SLOT1);
     asm_invlpg(page);
     return page;
+}
+
+usize pd_create()
+{
+    usize page = page_alloc();
+
+    page = kmap(KMAP_SLOT0, page);
+
+    memset(page, 0, PAGE_4KB);
+
+    usize *bpd = (usize *)boot_page_directory + KERNEL_VIRTUAL_BASE;
+    usize *new_page = (usize *)page;
+
+    for (usize i = 768; i < 1022; i++)
+    {
+        new_page[i] = (bpd)[i];
+    }
+
+    asm_invlpg(KMAP_SLOT0);
+
 }

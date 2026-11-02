@@ -39,4 +39,18 @@ struct gdt_ptr{
 } __attribute__((packed));
 void lgdt_pub(struct gdt_ptr *ptr);
 
+
+static inline void serial_putc(char c) {
+    outb(0x3F8, c);
+}
+
+static inline void serial_puts(const char *s) {
+    while (*s) serial_putc(*s++);
+}
+
+static inline void panic(void) {
+    serial_puts("PANIC at page_init\n");
+    while (1) asm volatile("hlt");
+}
+
 #endif /* IO_H */
