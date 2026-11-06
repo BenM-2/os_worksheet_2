@@ -23,7 +23,6 @@ typedef struct
     u32int k_p_end;
 } start_vars;
 
-#define NULL 0
 #define MAX_NODES 20
 
 #define PAGE_4KB 4096

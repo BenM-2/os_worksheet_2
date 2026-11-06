@@ -53,4 +53,6 @@ static inline void panic(void) {
     while (1) asm volatile("hlt");
 }
 
+int sn_printf(int len, char *buff, const char *format, ...);
+
 #endif /* IO_H */

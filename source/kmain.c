@@ -53,7 +53,11 @@ int kernel_main(unsigned int ebx)
 
     page_init(boot_vars,mbinfo);
 
-    tui_start();
+    char buff[20] = {};
+    sn_printf(20, buff,"This is test %d",10);
+    serial_puts(buff);
+
+    // tui_start();
 
     interrupts_install_idt();
 
