@@ -4,16 +4,34 @@
  * @brief
  */
 
+//------------------------------------------------------------------------------
+// Includes
 #include "page_frame_allocation.h"
 #include "paging.h"
 #include "err.h"
+#include "kbool.h"
 #include "type.h"
 #include "kmem.h"
+#include "io.h"
+
 
 static page_type pages[BITMAP_BYTES];
 
-#include "io.h"
+//------------------------------------------------------------------------------
+// Function Declarations
+static bool ret_page_index(int index);
+static void set_page_index(int index, bool value);
+static void release_region(u64int start_addr, u64int end_addr);
+static void reserve_region(u64int start_addr, u64int end_addr);
+static void Release_All_Usable_Mem(const struct multiboot_info *multiboot_info);
+void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info);
+usize page_alloc(void);
+void page_free(usize page);
+void *kmap(int slot, usize phys);
+usize pd_create(void);
 
+//------------------------------------------------------------------------------
+// Function Implementions
 static bool ret_page_index(int index)
 {
     int bit_index = index % SIZEOF_PAGE_STORAGE;
@@ -116,7 +134,7 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
  * @brief Returns the first free `4KB` page available.
  * @return `0` if no free pages exist; returns Physical page address otherwise
  */
-usize page_alloc()
+usize page_alloc(void)
 {
     usize page = 0; // Err page
 
@@ -144,28 +162,27 @@ void *kmap(int slot, usize phys)
 {
     usize mask = 0xFFFFF000;
 
-    ((usize *)boot_page_directory)[1022 + slot] = (phys & mask) | PTE_PRESENT | PTE_RW;
-    void *page = (void *)(slot ? (usize)KMAP_SLOT0 : (usize)KMAP_SLOT1);
+    boot_page_table[1022 + slot] = (phys & mask) | PTE_PRESENT | PTE_RW;
+    void *page = (void *)(slot ? KMAP_SLOT1_VA : KMAP_SLOT0_VA);
     asm_invlpg(page);
     return page;
 }
 
-usize pd_create()
+usize pd_create(void)
 {
-    usize page = page_alloc();
+    usize phys = page_alloc(); // returns Physical mem 
+    if (phys == 0){return 0;}
 
-    page = kmap(KMAP_SLOT0, page);
+    usize* pd = kmap(KMAP_SLOT0, phys); // return virtual address to the page table and flushes the page
 
-    memset(page, 0, PAGE_4KB);
+    memset(pd, 0, PAGE_4KB);
 
-    usize *bpd = (usize *)boot_page_directory + KERNEL_VIRTUAL_BASE;
-    usize *new_page = (usize *)page;
+    usize *bpd = (usize *)boot_page_directory ;
 
-    for (usize i = 768; i < 1022; i++)
+    for (usize i = 768; i < 1024; i++)
     {
-        new_page[i] = (bpd)[i];
+        pd[i] = (bpd)[i];
     }
 
-    asm_invlpg(KMAP_SLOT0);
-
+    return phys;
 }

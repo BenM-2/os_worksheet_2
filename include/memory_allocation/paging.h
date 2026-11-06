@@ -27,22 +27,26 @@ typedef enum {
 } PTE_FLAGS;
 
 typedef enum {
-    PTE_PRESENT = 0x01,
-    PTE_RW      = 0x02,
-    PTE_USER    = 0x04,
-    PTE_PWT     = 0x08, // Page write through
-    PTE_PCD     = 0x10, // Cache disabled
-    PTE_ACCESSED= 0x20,
+    PDE_PRESENT = 0x01,
+    PDE_RW      = 0x02,
+    PDE_USER    = 0x04,
+    PDE_PWT     = 0x08, // Page write through
+    PDE_PCD     = 0x10, // Cache disabled
+    PDE_ACCESSED= 0x20,
     // PTE_IGNORED = 0x40, 
-    PTE_PAT     = 0x80, // PDEs / PTEs
+    PDE_PAT     = 0x80, // PDEs / PTEs
 } PDE_FLAGS;
 
-extern usize boot_page_directory; // Physical reference to the boot_page_directory
+extern usize boot_page_directory[1024]; // Virtual reference to the boot_page_directory
+extern usize boot_page_table[1024]; // Virtual reference to the boot_page_table
 
 typedef enum{
-    KMAP_SLOT0 = 0xC03FE000u, // PTE 1022
-    KMAP_SLOT1 = 0xC03FF000u, // PTE 1023
+    KMAP_SLOT0 = 0, // PTE 1022
+    KMAP_SLOT1 = 1, // PTE 1023
 } KMAP_SLOT;
+
+#define KMAP_SLOT0_VA  0xC03FE000u
+#define KMAP_SLOT1_VA  0xC03FF000u
 
 
 //------------------------------------------------------------------------------
