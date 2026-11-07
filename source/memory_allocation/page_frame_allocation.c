@@ -14,11 +14,14 @@
 #include "kmem.h"
 #include "io.h"
 
-
+/**
+ * @brief Allocation bitmap: one bit per `4 KiB` physical frame (1 = used) (0 = free)
+ */
 static page_type pages[BITMAP_BYTES];
 
 //------------------------------------------------------------------------------
 // Function Declarations
+
 static bool ret_page_index(int index);
 static void set_page_index(int index, bool value);
 static void release_region(u64int start_addr, u64int end_addr);
@@ -32,6 +35,13 @@ usize pd_create(void);
 
 //------------------------------------------------------------------------------
 // Function Implementions
+
+/**
+ * @brief Reads allocation state of a given index
+ * @param index Frame number (Physical address >> 12)
+ * @retval `true` if frame is in use
+ * @retval `false` if frame is free
+ */
 static bool ret_page_index(int index)
 {
     int bit_index = index % SIZEOF_PAGE_STORAGE;
@@ -42,6 +52,11 @@ static bool ret_page_index(int index)
     return (bool)data;
 }
 
+/**
+ * @brief Set allocation state of a given index
+ * @param index Frame number (Physical address >> 12)
+ * @param value Takes in true or false to set the frame as (1 = used) (0 = free)
+ */
 static void set_page_index(int index, bool value)
 {
     int bit_index = index % SIZEOF_PAGE_STORAGE;
@@ -53,6 +68,17 @@ static void set_page_index(int index, bool value)
     pages[index / SIZEOF_PAGE_STORAGE] = data;
 }
 
+/**
+ * @brief Marks every frame touching a physical range as free.
+ *
+ * The start is rounded down and the end rounded up to 4 KiB boundaries, so
+ * any partially covered frame is also released.
+ *
+ * @param start_addr Physical start address (inclusive).
+ * @param end_addr   Physical end address (exclusive).
+ *
+ * @see reserve_region()
+ */
 static void release_region(u64int start_addr, u64int end_addr)
 {
     u64int Alligned_Start_index = start_addr >> 12;
@@ -64,6 +90,17 @@ static void release_region(u64int start_addr, u64int end_addr)
     }
 }
 
+/**
+ * @brief Marks every frame touching a physical range as in use.
+ *
+ * The start is rounded down and the end rounded up to 4 KiB boundaries, so
+ * any partially covered frame is also reserved.
+ *
+ * @param start_addr Physical start address (inclusive).
+ * @param end_addr   Physical end address (exclusive).
+ *
+ * @see release_region()
+ */
 static void reserve_region(u64int start_addr, u64int end_addr)
 {
     u64int Alligned_Start_index = start_addr >> 12;
@@ -75,6 +112,19 @@ static void reserve_region(u64int start_addr, u64int end_addr)
     }
 }
 
+/**
+ * @brief Frees all usable RAM reported by the multiboot memory map.
+ *
+ * Walks the multiboot mmap entries and releases every
+ * `MULTIBOOT_MEMORY_AVAILABLE` region that starts below 4 GiB, clamping
+ * regions that extend past it. The mmap is accessed through the higher-half
+ * mapping (`phys + KERNEL_VIRTUAL_BASE`), so it must lie within the memory
+ * mapped at boot.
+ *
+ * @param multiboot_info Multiboot info structure passed by the bootloader.
+ *
+ * @note Calls panic() if the bootloader did not provide a memory map.
+ */
 static void Release_All_Usable_Mem(const struct multiboot_info *multiboot_info)
 {
     if (!(multiboot_info->flags & MULTIBOOT_INFO_MEM_MAP))
@@ -109,6 +159,21 @@ static void Release_All_Usable_Mem(const struct multiboot_info *multiboot_info)
     }
 }
 
+/**
+ * @brief Initialises the physical page frame allocator.
+ *
+ * Steps:
+ *  -# Mark every frame as in use.
+ *  -# Release all usable RAM from the multiboot memory map.
+ *  -# Re-reserve memory that must not be handed out: the kernel image
+ *     (and everything below it), the multiboot info structure, the memory
+ *     map itself, and the frames backing the kmap temporary slots.
+ *
+ * @param Boot_Vars       Kernel start/end addresses captured at boot.
+ * @param multiboot_info  Multiboot info structure (higher-half virtual address).
+ *
+ * @note Must be called once, before any call to page_alloc() or page_free().
+ */
 void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info)
 {
     for (u32int i = 0; i < BITMAP_BYTES; i++)
@@ -151,13 +216,38 @@ usize page_alloc(void)
 }
 
 /**
- * @brief Frees the Region on memory from page -> Page + `4KB`
+ * @brief Frees a single 4 KiB physical page frame.
+ *
+ * @param page Physical address of the frame, as returned by page_alloc().
+ *
+ * @warning No validation is performed: the address should be page-aligned
+ *          and currently allocated. Double frees are not detected.
+ *
+ * @see page_alloc()
  */
 void page_free(usize page)
 {
     release_region(page, page + PAGE_4KB);
 }
 
+/**
+ * @brief Maps a physical frame into a fixed kernel temporary slot.
+ *
+ * Writes a present, read/write PTE into `boot_page_table[1022 + slot]` and
+ * flushes the TLB entry for the slot's virtual address, so the frame can be
+ * accessed without it being permanently mapped. Mapping a new frame into a
+ * slot invalidates the previous pointer to that slot.
+ *
+ * @param slot Slot number: `0` selects KMAP_SLOT0_VA; any non-zero value
+ *             selects KMAP_SLOT1_VA.
+ * @param phys Physical address of the frame to map (low 12 bits ignored).
+ *
+ * @return Virtual address through which the frame is now accessible.
+ *
+ * @note The slots live in the boot page table, so they are visible in every
+ *       address space created with pd_create().
+ * @note Not reentrant: the slots are global state.
+ */
 void *kmap(int slot, usize phys)
 {
     usize mask = 0xFFFFF000;
@@ -168,21 +258,41 @@ void *kmap(int slot, usize phys)
     return page;
 }
 
+/**
+ * @brief Creates a new page directory.
+ *
+ * Allocates a frame, zeroes it, and copies the kernel-space entries
+ * (PDEs 768-1023, i.e. virtual addresses from 0xC0000000 up) from
+ * `boot_page_directory` so the kernel stays mapped in the new address space.
+ * User-space entries (0-767) are left empty.
+ *
+ * @return Physical address of the new page directory, or `0` if no frame
+ *         could be allocated.
+ *
+ * @note Uses kmap slot 0, invalidating any earlier pointer to that slot.
+ * @todo Set PDE 1023 to point at the new directory itself if using
+ *       recursive page table mapping.
+ */
 usize pd_create(void)
 {
-    usize phys = page_alloc(); // returns Physical mem 
-    if (phys == 0){return 0;}
+    usize phys = page_alloc(); // returns Physical mem
+    if (phys == 0)
+    {
+        return 0;
+    }
 
-    usize* pd = kmap(KMAP_SLOT0, phys); // return virtual address to the page table and flushes the page
+    usize *pd = kmap(KMAP_SLOT0, phys); // return virtual address to the page table and flushes the page
 
     memset(pd, 0, PAGE_4KB);
 
-    usize *bpd = (usize *)boot_page_directory ;
+    usize *bpd = (usize *)boot_page_directory;
 
-    for (usize i = 768; i < 1024; i++)
+    for (usize i = 768; i < 1023; i++)
     {
         pd[i] = (bpd)[i];
     }
+
+    pd[1023] = (phys & 0xFFFFF000) | PTE_PRESENT | PTE_RW;
 
     return phys;
 }

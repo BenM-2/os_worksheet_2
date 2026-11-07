@@ -29,6 +29,37 @@ typedef void (*call_module_t)(void);
 //------------------------------------------------------------------------------
 // Function Implementions
 
+/**
+ * @brief Self-test for the kmap temporary mapping slots.
+ *
+ * Allocates two physical frames and verifies that kmap() correctly maps
+ * frames into slots and that remapping a slot updates the translation
+ * (i.e. the TLB entry is flushed).
+ *
+ * The test runs in two stages:
+ *  -# **Aliasing check:** frame A is mapped into slots 0 and 1. A pattern
+ *     (0xDEAD0000 + i) is written through slot 0 and must read back
+ *     identically through slot 1, confirming both slots reach the same
+ *     physical frame.
+ *  -# **Remap/flush check:** slot 0 is remapped to frame B and a different
+ *     pattern (0xBEEF0000 + i) is written through it. Slot 1, still mapped
+ *     to frame A, must continue to hold the original 0xDEAD0000 + i data.
+ *     This fails if the remap did not take effect (stale TLB entry) or
+ *     if the write leaked into frame A.
+ *
+ * Progress and results are printed to the framebuffer console.
+ *
+ * @note Each frame is treated as 1024 words, which assumes a 4 KiB page
+ *       and a 32-bit usize.
+ * @note The allocated frames are not freed before returning, so each
+ *       call leaks two frames.
+ *
+ * @retval 0 All checks passed.
+ * @retval 1 A frame allocation failed, or a read/write check mismatched.
+ *
+ * @see kmap()
+ * @see page_alloc()
+ */
 int kmap_test(void)
 {
     // Allocate 2 test frames
