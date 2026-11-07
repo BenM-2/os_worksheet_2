@@ -32,6 +32,7 @@ usize page_alloc(void);
 void page_free(usize page);
 void *kmap(int slot, usize phys);
 usize pd_create(void);
+int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
 
 //------------------------------------------------------------------------------
 // Function Implementions
@@ -295,4 +296,81 @@ usize pd_create(void)
     pd[1023] = (phys & 0xFFFFF000) | PTE_PRESENT | PTE_RW;
 
     return phys;
+}
+
+/**
+ * @brief Maps one 4 KiB virtual page to a physical frame in a page directory.
+ *
+ * Splits @p virt into a PD index (`virt >> 22`) and a PT index
+ * (`(virt >> 12) & 0x3FF`), allocating and zeroing the page table first if
+ * the PDE is not present.
+ *
+ * Virtual address layout:
+ * @code
+ *  31          22 21          12 11           0
+ * +--------------+--------------+--------------+
+ * |   PD index   |   PT index   |    offset    |
+ * |   (10 bits)  |   (10 bits)  |   (12 bits)  |
+ * +--------------+--------------+--------------+
+ * @endcode
+ *
+ * PDE / PTE layout:
+ * @code
+ *  31                          12 11          0
+ * +------------------------------+-------------+
+ * |   physical frame address     |    flags    |
+ * +------------------------------+-------------+
+ * @endcode
+ *
+ * The PTE is written as `(phys & 0xFFFFF000) | (flags & 0xFFF) | PTE_PRESENT`:
+ * `0xFFFFF000` keeps the address bits (and page-aligns @p phys), `0xFFF`
+ * keeps the flags from overwriting the address.
+ *
+ * New PDEs are `PDE_PRESENT | PDE_RW`, with only the user bit copied from
+ * @p flags, so each PTE decides the final permissions.
+ *
+ * @param pd_phys Physical address of the page directory.
+ * @param virt    Virtual address to map (low 12 bits ignored).
+ * @param phys    Physical frame address (low 12 bits masked off).
+ * @param flags   PTE flags, e.g. `PTE_RW`, `PTE_USER` (bits 0-11 only).
+ *
+ * @retval 0 Mapping written.
+ * @retval 1 A page table was needed but allocation failed.
+ *
+ * @note Uses kmap slots 0 (PD) and 1 (PT); not reentrant. The TLB entry is
+ *       flushed only if @p pd_phys is the active directory.
+ * @warning Do not map into 0xC0000000-0xC03FFFFF (shared `boot_page_table`).
+ *          Existing mappings are overwritten silently.
+ */
+int map_page(usize pd_phys, usize virt, usize phys, u32int flags)
+{
+    usize page_directory_index = virt >> 22;
+    usize page_table_index = (virt >> 12) & 0x3FF;
+
+    usize *page_directory = kmap(KMAP_SLOT0, pd_phys);
+    usize page_directory_entry = page_directory[page_directory_index];
+
+    if (!(page_directory_entry & PDE_PRESENT))
+    {
+        usize page_table_phys = page_alloc();
+        if (page_table_phys == 0)
+        {
+            return 1;
+        }
+        usize *page_table = kmap(KMAP_SLOT1, page_table_phys);
+        memset(page_table, 0, PAGE_4KB);
+
+        page_directory[page_directory_index] = page_table_phys | PDE_PRESENT | PDE_RW | (flags & PTE_USER);
+        page_directory_entry = page_directory[page_directory_index];
+    }
+
+    usize *page_table = KMAP(KMAP_SLOT1, page_directory_entry & 0xFFFFF000);
+    page_table[page_table_index] = (phys & 0xFFFFF000) | (flags & 0xFFF) | PTE_PRESENT;
+
+    if (pd_phys == asm_read_cr3())
+    {
+        asm_invlpg((void *)virt);
+    }
+
+    return 0;
 }

@@ -15,7 +15,6 @@ I have completed everything until `section 10.2`/`page 63` in the [The little bo
 ## Todo 
 |Task| Desc | Time | Priority |
 |-|-|-|-|
-| Write `map_page` | Split the address, create the page table on demand (slot 0 for PD, slot 1 for PT), write the PTE, flush with `cpu_invlpg` | 30 min | High |
 | Test the switch | Create a PD, map a test page, `cpu_write_cr3`, and confirm serial output still works (a triple fault means the kernel PDEs weren't copied or the running code isn't mapped) | 30 min | High |
 | Add a `kernel_pd` template | Stop copying from `boot_page_directory` and use a dedicated variable as the source of truth for kernel PDEs | 15 min | Low |
 | Handle new kernel PDEs | Pre-create all kernel PDEs at boot, or sync them across address spaces on demand | 1 hr | Low |
