@@ -10,6 +10,7 @@ typedef unsigned char u8int;
 typedef char s8int;
 typedef unsigned long long u64int;
 typedef u32int usize;
+typedef usize size_t;
 #define NULL 0;
 
 #endif
