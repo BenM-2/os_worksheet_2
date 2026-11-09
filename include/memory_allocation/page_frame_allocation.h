@@ -1,4 +1,11 @@
+/**
+ * @file page_frame_allocation.h
+ * @author Ben Marples
+ * @brief
+ */
 
+//------------------------------------------------------------------------------
+// Includes
 
 #ifndef PAGE_FRAME_ALLOCATION_H
 #define PAGE_FRAME_ALLOCATION_H
@@ -16,7 +23,6 @@ typedef struct
     u32int k_p_end;
 } start_vars;
 
-#define NULL 0
 #define MAX_NODES 20
 
 #define PAGE_4KB 4096
@@ -39,7 +45,14 @@ typedef struct
 #define BITMAP_BYTES (MAX_PAGES / SIZEOF_PAGE_STORAGE)
 #define KERNEL_VIRTUAL_BASE 0xC0000000
 
-void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info);
 
+//------------------------------------------------------------------------------
+// Function Declarations
+void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info);
+usize page_alloc(void);
+void page_free(usize page);
+void *kmap(int slot, usize phys);
+usize pd_create(void);
+int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
 
 #endif
