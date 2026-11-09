@@ -364,7 +364,7 @@ int map_page(usize pd_phys, usize virt, usize phys, u32int flags)
         page_directory_entry = page_directory[page_directory_index];
     }
 
-    usize *page_table = KMAP(KMAP_SLOT1, page_directory_entry & 0xFFFFF000);
+    usize *page_table = kmap(KMAP_SLOT1, page_directory_entry & 0xFFFFF000);
     page_table[page_table_index] = (phys & 0xFFFFF000) | (flags & 0xFFF) | PTE_PRESENT;
 
     if (pd_phys == asm_read_cr3())
