@@ -53,5 +53,6 @@ usize page_alloc(void);
 void page_free(usize page);
 void *kmap(int slot, usize phys);
 usize pd_create(void);
+int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
 
 #endif

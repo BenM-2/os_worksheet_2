@@ -15,6 +15,7 @@
 #include "gdt.h"
 #include "multiboot.h"
 #include "page_frame_allocation.h"
+#include "paging.h"
 #include "kstring.h"
 
 // Vars / types
@@ -113,9 +114,36 @@ int kmap_test(void)
     FB_write_string("Passed ut write from frame", strlen("Passed ut write from frame"));
     FB_set_cursor_newline();
 
-
-
     return 0;
+}
+
+/**
+ * @brief Test pd_create and checking if a triple fault after map_page
+ */
+int page_test(void)
+{
+    usize pd = pd_create();
+    usize frame = page_alloc();
+
+    if (map_page(pd, 0x00400000, frame, PTE_RW))
+    {
+        return 1;
+    }
+
+    volatile usize *alias = kmap(KMAP_SLOT0, frame);
+    alias[0] = 0xCAFEBABE;
+
+    usize old_cr3 = asm_read_cr3();
+    asm_write_cr3(pd);
+
+    volatile usize *test = (volatile usize *)0x00400000;
+    bool ok = (*test == 0xCAFEBABE);
+
+    FB_write_string(ok ? "Passed paging switch" : "Failed paging switch", 20);
+    FB_set_cursor_newline();
+
+    asm_write_cr3(old_cr3); // switch back to the boot PD
+    return !ok;
 }
 
 int kernel_main(unsigned int ebx)
@@ -152,6 +180,8 @@ int kernel_main(unsigned int ebx)
     enable_hardware_interrupts();
 
     kmap_test();
+
+    page_test();
 
     return ebx;
 }
