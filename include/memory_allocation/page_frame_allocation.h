@@ -48,11 +48,14 @@ typedef struct
 
 //------------------------------------------------------------------------------
 // Function Declarations
+
 void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info);
 usize page_alloc(void);
 void page_free(usize page);
 void *kmap(int slot, usize phys);
 usize pd_create(void);
 int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
+void *k_malloc(size_t size);
+
 
 #endif

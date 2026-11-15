@@ -11,6 +11,7 @@ typedef enum
 {
     ERR_NONE,
     ERR_GENERIC,
+    ERR_OOM,
 } ERR_t;
 
 

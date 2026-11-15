@@ -48,6 +48,14 @@ typedef enum{
 #define KMAP_SLOT0_VA  0xC03FE000u
 #define KMAP_SLOT1_VA  0xC03FF000u
 
+typedef struct block
+{
+    usize size;          // payload size, not including header
+    struct block *next;  // next block in address order
+    struct block *prev;
+    u32int free;         // 1 = free
+    u32int magic;        // 0xB10CB10C, to catch corruption and bad frees
+} mem_block_t;
 
 //------------------------------------------------------------------------------
 // Function Definitions

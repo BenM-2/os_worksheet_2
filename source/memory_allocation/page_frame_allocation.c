@@ -19,20 +19,33 @@
  */
 static page_type pages[BITMAP_BYTES];
 
+static usize kernel_pd = 0;
+
 //------------------------------------------------------------------------------
 // Function Declarations
+
+// Static
 
 static bool ret_page_index(int index);
 static void set_page_index(int index, bool value);
 static void release_region(u64int start_addr, u64int end_addr);
 static void reserve_region(u64int start_addr, u64int end_addr);
 static void Release_All_Usable_Mem(const struct multiboot_info *multiboot_info);
+static usize alloc_size(usize bytes);
+static int map_range(usize pd_phys, usize virt, usize phys, u32int flags, usize page_total);
+static usize unmap_page(usize pd_phys, usize virt);
+static void unmap_range(usize pd_phys, usize virt, usize page_total);
+static usize pd_get(void);
+
+// Public
+
 void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info);
 usize page_alloc(void);
 void page_free(usize page);
 void *kmap(int slot, usize phys);
 usize pd_create(void);
 int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
+void *k_malloc(size_t size);
 
 //------------------------------------------------------------------------------
 // Function Implementions
@@ -232,6 +245,46 @@ void page_free(usize page)
 }
 
 /**
+ * @brief Finds and sets the first set of pages of a size of bytes
+ *
+ * @retval Returns the physical address of the first byte of the set allocated
+ * @retval `0` Failed to Allocate bytes OOM
+ *
+ */
+static usize alloc_size(usize bytes)
+{
+    const usize page_total = (bytes + PAGE_4KB - 1) / PAGE_4KB;
+    const usize first_free = page_alloc();
+    if (first_free == 0)
+    {
+        return 0;
+    }
+    // set first page empty
+    usize first_free_index = first_free / PAGE_4KB;
+    set_page_index(first_free_index, EMPTY);
+
+    for (usize i = first_free_index; i < first_free_index + page_total; i++)
+    {
+
+        if (i >= MAX_PAGES)
+        {
+            return 0;
+        }
+
+        if (ret_page_index(i) != EMPTY)
+        {
+            first_free_index = i + 1;
+        }
+    }
+
+    for (usize i = 0; i < page_total; i++)
+    {
+        set_page_index(first_free_index + i, FULL);
+    }
+    return first_free_index * PAGE_4KB;
+}
+
+/**
  * @brief Maps a physical frame into a fixed kernel temporary slot.
  *
  * Writes a present, read/write PTE into `boot_page_table[1022 + slot]` and
@@ -267,8 +320,8 @@ void *kmap(int slot, usize phys)
  * `boot_page_directory` so the kernel stays mapped in the new address space.
  * User-space entries (0-767) are left empty.
  *
- * @return Physical address of the new page directory, or `0` if no frame
- *         could be allocated.
+ * @retval Physical address of the new page directory
+ * @retval `0` if no frame could be allocated.
  *
  * @note Uses kmap slot 0, invalidating any earlier pointer to that slot.
  * @todo Set PDE 1023 to point at the new directory itself if using
@@ -373,4 +426,113 @@ int map_page(usize pd_phys, usize virt, usize phys, u32int flags)
     }
 
     return 0;
+}
+
+/**
+ * @brief Maps a range of contiguous frames to a given pd
+ * @retval `1` on fail
+ * @retval `0` on success
+ */
+static int map_range(usize pd_phys, usize virt, usize phys, u32int flags, usize page_total)
+{
+    for (usize i = 0; i < page_total; i++)
+    {
+        if (map_page(pd_phys, virt + (i * PAGE_4KB), phys + (i * PAGE_4KB), flags) != 0)
+        {
+            unmap_range(pd_phys, virt, i);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/** Clears one PTE. Returns the physical frame it held, or 0 if it wasn't mapped. */
+static usize unmap_page(usize pd_phys, usize virt)
+{
+    usize *pd = kmap(KMAP_SLOT0, pd_phys);
+    usize pde = pd[virt >> 22];
+
+    if (!(pde & PDE_PRESENT))
+        return 0;
+
+    usize *pt = kmap(KMAP_SLOT1, pde & 0xFFFFF000);
+    usize idx = (virt >> 12) & 0x3FF;
+    usize pte = pt[idx];
+
+    if (!(pte & PTE_PRESENT))
+        return 0;
+
+    pt[idx] = 0;
+
+    if (pd_phys == asm_read_cr3())
+        asm_invlpg((void *)virt);
+
+    return pte & 0xFFFFF000;
+}
+
+static void unmap_range(usize pd_phys, usize virt, usize page_total)
+{
+    for (usize i = 0; i < page_total; i++)
+        unmap_page(pd_phys, virt + i * PAGE_4KB);
+}
+
+static usize pd_get(void)
+{
+    if (kernel_pd)
+    {
+        return kernel_pd;
+    }
+
+    usize cr3 = asm_read_cr3() & 0xFFFFF000;
+
+    if (!cr3)
+    {
+        kernel_pd = pd_create();
+        if (!kernel_pd)
+        {
+            asm_halt();
+        }
+    }
+    else
+    {
+        kernel_pd = cr3;
+    }
+    return kernel_pd;
+}
+
+void *k_malloc(size_t size)
+{
+    static usize v_addr = 0xC0400000; // Mem address in kernel mem
+    usize start = v_addr;
+    usize pd = pd_get();
+
+    // For size / 4k
+    usize page_total = (size + sizeof(mem_block_t) + PAGE_4KB - 1) / PAGE_4KB; // ceil the page total
+
+    usize alloc_phys = alloc_size(size + sizeof(mem_block_t));
+    if (!alloc_phys)
+    {
+        return (void *)0;
+    }
+
+    if (map_range(pd, v_addr, alloc_phys, PTE_RW, page_total))
+    {
+        for (usize i = 0; i < page_total; i++)
+        {
+            page_free(alloc_phys + i * PAGE_4KB);
+        }
+        return (void *)0;
+    }
+
+    v_addr = v_addr + (0x1000 * page_total);
+
+    mem_block_t *ret_addr = (mem_block_t *)start;
+    ret_addr->free = false;
+    ret_addr->magic = 0xB10CB10C;
+    ret_addr->size = size + sizeof(mem_block_t);
+    ret_addr->prev = (void *)0;
+    ret_addr->next = (void *)0;
+
+    ret_addr++;
+    return (void *)ret_addr;
 }

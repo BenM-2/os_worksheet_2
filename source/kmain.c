@@ -29,6 +29,13 @@ typedef void (*call_module_t)(void);
 
 //------------------------------------------------------------------------------
 // Function Implementions
+static int check(bool ok, const char *pass, const char *fail)
+{
+    const char *msg = ok ? pass : fail;
+    FB_write_string(msg, strlen(msg));
+    FB_set_cursor_newline();
+    return !ok;
+}
 
 /**
  * @brief Self-test for the kmap temporary mapping slots.
@@ -146,6 +153,43 @@ int page_test(void)
     return !ok;
 }
 
+int k_malloc_test(void)
+{
+    int fails = 0;
+    char *a = k_malloc(100);
+    char *b = k_malloc(6000); // spans 2 pages
+    char *c = k_malloc(100);
+
+    if (!a || !b || !c)
+        return check(false, "", "k_malloc returned NULL");
+
+    // Placement (valid only if this is the first k_malloc in the kernel)
+    const usize H = sizeof(mem_block_t);
+    fails += check((usize)a == 0xC0400000 + H, "a address ok", "a address wrong");
+    fails += check((usize)b == 0xC0401000 + H, "b address ok", "b address wrong");
+    fails += check((usize)c == 0xC0403000 + H, "c address ok", "c address wrong");
+
+    // Write at the edges of each block, including b's second page
+    a[0] = 0x10; a[99]   = 0x11;
+    b[0] = 0x20; b[5999] = 0x42;
+    c[0] = 0x30; c[99]   = 0x33;
+
+    // Headers survive the writes
+    mem_block_t *ha = (mem_block_t *)a - 1;
+    mem_block_t *hb = (mem_block_t *)b - 1;
+    mem_block_t *hc = (mem_block_t *)c - 1;
+    fails += check(ha->magic == 0xB10CB10C && hb->magic == 0xB10CB10C && hc->magic == 0xB10CB10C,
+                   "headers ok", "header corrupted");
+
+    // Data survives, so no overlaps
+    fails += check(a[0] == 0x10 && a[99] == 0x11 &&
+                   b[0] == 0x20 && b[5999] == 0x42 &&
+                   c[0] == 0x30 && c[99] == 0x33,
+                   "data intact", "data corrupted");
+
+    return fails;
+}
+
 int kernel_main(unsigned int ebx)
 {
     multiboot_info_t *mbinfo = (multiboot_info_t *)ebx;
@@ -182,6 +226,12 @@ int kernel_main(unsigned int ebx)
     kmap_test();
 
     page_test();
+
+    k_malloc_test();
+
+
+    FB_write_string("Test End",strlen("Test End"));
+    FB_set_cursor_newline();
 
     return ebx;
 }
