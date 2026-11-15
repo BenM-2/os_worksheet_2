@@ -22,7 +22,7 @@ struct gdt_entry
     u8int base_high;
 } __attribute__((packed));
 
-static struct gdt_entry gdt[3];
+static struct gdt_entry gdt[5];
 static struct gdt_ptr gdt_descriptor;
 
 /* Access byte bits */
@@ -67,6 +67,8 @@ void gdt_init(void)
     gdt_set_entry(0, 0, 0,          0x00,               0x00);              // Null descriptor
     gdt_set_entry(1, 0, 0xFFFFFFFF, GDT_RX  | GDT_DPL0, GDT_FLAGS_32_4K);   // Kernel code
     gdt_set_entry(2, 0, 0xFFFFFFFF, GDT_RWD | GDT_DPL0, GDT_FLAGS_32_4K);   // Kernel data
+    gdt_set_entry(3, 0, 0xFFFFFFFF, GDT_RX  | GDT_DPL3, GDT_FLAGS_32_4K);   // User Code
+    gdt_set_entry(4, 0, 0xFFFFFFFF, GDT_RWD | GDT_DPL3, GDT_FLAGS_32_4K);   // User Data
 
     gdt_descriptor.size = sizeof(gdt) - 1;
     gdt_descriptor.address = (u32int)&gdt;
