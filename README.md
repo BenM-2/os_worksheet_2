@@ -15,11 +15,6 @@ I have completed everything until `section 10.2`/`page 63` in the [The little bo
 ## Todo 
 |Task| Desc | Time | Priority |
 |-|-|-|-|
-| Test the switch | Create a PD, map a test page, `cpu_write_cr3`, and confirm serial output still works (a triple fault means the kernel PDEs weren't copied or the running code isn't mapped) | 30 min | High |
-| Add a `kernel_pd` template | Stop copying from `boot_page_directory` and use a dedicated variable as the source of truth for kernel PDEs | 15 min | Low |
-| Handle new kernel PDEs | Pre-create all kernel PDEs at boot, or sync them across address spaces on demand | 1 hr | Low |
-| Write `unmap_page` | Clear the PTE and flush the TLB entry (optionally free empty page tables) | 30 min | Low |
-| Make slots reentrant | Add a lock or per-CPU slots once you have interrupts or preemption that call `map_page` | 1 hr+ | Low |
 
 ## Task 1 
 ### Overview

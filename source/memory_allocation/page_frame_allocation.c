@@ -12,6 +12,7 @@
 #include "kbool.h"
 #include "type.h"
 #include "kmem.h"
+#include "process.h"
 #include "io.h"
 
 /**
@@ -195,6 +196,8 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
         pages[i] = FULL_PAGE;
     }
 
+    // GRUB
+
     Release_All_Usable_Mem(multiboot_info);
 
     reserve_region(0, Boot_Vars.k_p_end);
@@ -205,6 +208,18 @@ void page_init(start_vars Boot_Vars, const struct multiboot_info *multiboot_info
 
     reserve_region(multiboot_info->mmap_addr,
                    multiboot_info->mmap_addr + multiboot_info->mmap_length);
+
+    if (multiboot_info->flags & MULTIBOOT_INFO_MODS)
+    {
+        reserve_region(multiboot_info->mods_addr, multiboot_info->mods_addr + (multiboot_info->mods_count * sizeof(multiboot_module_t)));
+
+        const struct multiboot_mod_list *mods = (const struct multiboot_mod_list *)(multiboot_info->mods_addr + KERNEL_VIRTUAL_BASE);
+
+        for (usize i = 0; i < multiboot_info->mods_count; i++)
+        {
+            reserve_region(mods[i].mod_start, mods[i].mod_end);
+        }
+    }
 
     reserve_region(0x3FE000, 0x400000); // Temp slot frames
 }
@@ -535,4 +550,160 @@ void *k_malloc(size_t size)
 
     ret_addr++;
     return (void *)ret_addr;
+}
+
+/**
+ * @brief Allocates the physical frames a user process needs.
+ *
+ * Allocates ceil(binary_size / 4 KiB) frames for code and data, plus one
+ * frame for the stack. Frames are not zeroed and not mapped here.
+ *
+ * @param proc         Process whose frame fields are filled in.
+ * @param binary_size  Size in bytes of the program binary.
+ *
+ * @retval 0 Success
+ * @retval 1 Failed
+ */
+int process_alloc_frame(process_t *proc, usize bin_size)
+{
+    proc->code_frame_count = (bin_size + PAGE_4KB - 1) / PAGE_4KB;
+    proc->code_frames = k_malloc(proc->code_frame_count * sizeof(usize));
+    if (!proc->code_frames)
+    {
+        return 1;
+    }
+
+    for (usize i = 0; i < proc->code_frame_count; i++)
+    {
+        proc->code_frames[i] = page_alloc();
+        if (proc->code_frames[i] == 0)
+        {
+            for (usize j = 0; j < i; j++)
+            {
+                page_free(proc->code_frames[j]);
+            }
+            return 1;
+        }
+    }
+
+    proc->stack_frame = page_alloc();
+    if (proc->stack_frame == 0)
+    {
+        for (usize j = 0; j < proc->code_frame_count; j++)
+        {
+            page_free(proc->code_frames[j]);
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Copies a program binary from physical memory into a process's code frames.
+ *
+ * Copies page by page through the two kmap slots. The unused tail of the
+ * last code frame is zeroed, and the stack frame is zeroed as well.
+ *
+ * @param proc       Process whose code frames were set up by process_alloc_frames().
+ * @param mod_start  Physical start address of the GRUB module.
+ * @param mod_end    Physical end address of the GRUB module (exclusive).
+ *
+ * @note Uses both kmap slots, so it must not call map_page(), pd_create()
+ *       or k_malloc() while copying.
+ */
+void process_load_binary(process_t *proc, usize mod_start, usize mod_end)
+{
+    usize size = mod_end - mod_start;
+
+    for (usize i = 0; i < proc->code_frame_count; i++)
+    {
+        usize offset = i * PAGE_4KB;
+        usize bytes = size - offset;
+        if (bytes >= PAGE_4KB)
+        {
+            bytes = PAGE_4KB;
+        }
+
+        u8int *src = kmap(KMAP_SLOT0, mod_start + offset);
+        u8int *dest = kmap(KMAP_SLOT1, proc->code_frames[i]);
+
+        memcpy(dest, src, bytes);
+        if (bytes < PAGE_4KB)
+        {
+            memset(dest + bytes, 0, PAGE_4KB - bytes);
+        }
+    }
+
+    usize *stack = kmap(KMAP_SLOT0, proc->stack_frame);
+    memset(stack, 0, PAGE_4KB);
+}
+
+/**
+ * @brief Builds the page directory for a user process.
+ *
+ * Creates a new page directory (kernel entries copied in by pd_create) and
+ * maps the code frames from 0x00000000 upward and the stack frame at
+ * USER_STACK_VA, all user-accessible and writable.
+ *
+ * @param proc  Process whose frames were set up by process_alloc_frames().
+ *
+ * @retval 0 Success; proc->pd_phys holds the new page directory.
+ * @retval 1 Out of memory.
+ */
+int process_map(process_t *proc)
+{
+    proc->pd_phys = pd_create();
+    if (proc->pd_phys == 0)
+    {
+        return 1;
+    }
+
+    // Map frames
+    for (usize i = 0; i < proc->code_frame_count; i++)
+    {
+        if (map_page(proc->pd_phys, USER_CODE_VA + i * PAGE_4KB,
+                     proc->code_frames[i], PTE_RW | PTE_USER))
+        {
+            return 1;
+        }
+    }
+
+    return map_page(proc->pd_phys, USER_STACK_VA, proc->stack_frame, PTE_RW | PTE_USER);
+}
+
+process_t *process_create(usize mod_start, usize mod_end)
+{
+    process_t *proc = k_malloc(sizeof(process_t));
+    if (proc == NULL)
+    {
+        return NULL;
+    }
+
+    if (process_alloc_frame(proc, mod_end - mod_start))
+    {
+        return NULL;
+    }
+
+    process_load_binary(proc, mod_start, mod_end);
+
+    if (process_map(proc))
+    {
+        return NULL;
+    }
+
+    proc->entry = USER_CODE_VA;
+    proc->user_esp = USER_STACK_TOP;
+
+    return proc;
+}
+
+/**
+ * @brief Switches to a process's address space and enters user mode.
+ *
+ * Does not return.
+ */
+void process_enter(const process_t *proc)
+{
+    asm_enter_user_mode(proc->pd_phys, proc->entry, proc->user_esp);
 }

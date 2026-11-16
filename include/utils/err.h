@@ -1,6 +1,6 @@
 
 /**
- * @file tui_apps.h
+ * @file err.h
  * @author Ben Marples
  * @brief 
  */

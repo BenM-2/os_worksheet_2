@@ -17,6 +17,7 @@
 #include "page_frame_allocation.h"
 #include "paging.h"
 #include "kstring.h"
+#include "process.h"
 
 // Vars / types
 // void kernel_main_start(void);
@@ -170,9 +171,12 @@ int k_malloc_test(void)
     fails += check((usize)c == 0xC0403000 + H, "c address ok", "c address wrong");
 
     // Write at the edges of each block, including b's second page
-    a[0] = 0x10; a[99]   = 0x11;
-    b[0] = 0x20; b[5999] = 0x42;
-    c[0] = 0x30; c[99]   = 0x33;
+    a[0] = 0x10;
+    a[99] = 0x11;
+    b[0] = 0x20;
+    b[5999] = 0x42;
+    c[0] = 0x30;
+    c[99] = 0x33;
 
     // Headers survive the writes
     mem_block_t *ha = (mem_block_t *)a - 1;
@@ -183,8 +187,8 @@ int k_malloc_test(void)
 
     // Data survives, so no overlaps
     fails += check(a[0] == 0x10 && a[99] == 0x11 &&
-                   b[0] == 0x20 && b[5999] == 0x42 &&
-                   c[0] == 0x30 && c[99] == 0x33,
+                       b[0] == 0x20 && b[5999] == 0x42 &&
+                       c[0] == 0x30 && c[99] == 0x33,
                    "data intact", "data corrupted");
 
     return fails;
@@ -198,7 +202,8 @@ int kernel_main(unsigned int ebx)
     // {
     //     multiboot_module_t *modules = (multiboot_module_t *)mbinfo->mods_addr;
     //     call_module_t start_progam = (call_module_t)modules[0].mod_start;
-    // start_progam();
+    // // start_progam();
+
     // return 0;
     // }
 
@@ -229,9 +234,22 @@ int kernel_main(unsigned int ebx)
 
     k_malloc_test();
 
-
-    FB_write_string("Test End",strlen("Test End"));
+    FB_write_string("Test End", strlen("Test End"));
     FB_set_cursor_newline();
+
+    multiboot_module_t *modules = (multiboot_module_t *)(mbinfo->mods_addr + KERNEL_VIRTUAL_BASE);
+    // call_module_t start_progam = (call_module_t)modules[0].mod_start;
+
+    usize mod_start = (usize)(call_module_t)modules[0].mod_start;
+    usize mod_end = (usize)(call_module_t)modules[0].mod_end;
+
+    process_t *proc = process_create(mod_start, mod_end);
+    if (!proc)
+    {
+        FB_write_DEBUG_string("FAILED_PROC",strlen("FAILED_PROC")); 
+        panic();
+    }
+    process_enter(proc);
 
     return ebx;
 }

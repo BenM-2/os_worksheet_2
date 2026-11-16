@@ -14,7 +14,6 @@
 #include "kbool.h"
 #include "multiboot.h"
 
-
 typedef struct
 {
     u32int k_v_start;
@@ -43,8 +42,12 @@ typedef struct
 #define SIZEOF_PAGE_STORAGE (sizeof(page_type) * 8) // sizeof(*size of page data*)
 #define MAX_PAGES (0xC0000000u / PAGE_4KB)
 #define BITMAP_BYTES (MAX_PAGES / SIZEOF_PAGE_STORAGE)
+
 #define KERNEL_VIRTUAL_BASE 0xC0000000
 
+#define USER_CODE_VA 0x00000000u
+#define USER_STACK_VA 0xBFFFF000u
+#define USER_STACK_TOP 0xBFFFFFFBu 
 
 //------------------------------------------------------------------------------
 // Function Declarations
@@ -56,6 +59,5 @@ void *kmap(int slot, usize phys);
 usize pd_create(void);
 int map_page(usize pd_phys, usize virt, usize phys, u32int flags);
 void *k_malloc(size_t size);
-
 
 #endif
