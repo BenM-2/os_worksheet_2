@@ -17,6 +17,7 @@
 // Definitions
 #define INTERRUPTS_DESCRIPTOR_COUNT 256
 #define INTERRUPTS_KEYBOARD 33
+#define INTERRUPTS_SYSCALL 0x80
 // #define INPUT_BUFFER_SIZE 256
 
 static Interrupt_callbacks callbacks; // Keep callbacks constant though different calls
@@ -31,7 +32,7 @@ u32int BUFFER_COUNT;
 //------------------------------------------------------------------------------
 // Function Declarations
 void interrupts_cb_config(const Interrupt_callbacks *const callbacks_);
-void interrupts_init_descriptor(s32int index, u32int address);
+void interrupts_init_descriptor(s32int index, u32int address, u8int dpl);
 void interrupts_install_idt();
 void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int interrupt, __attribute__((unused)) struct stack_state stack);
 
@@ -61,7 +62,7 @@ void interrupt_handler(__attribute__((unused)) struct cpu_state cpu, u32int inte
  * @param index   IDT vector number to initialise (0-255).
  * @param address Address of the assembly interrupt handler stub.
  */
-void interrupts_init_descriptor(s32int index, u32int address)
+void interrupts_init_descriptor(s32int index, u32int address, u8int dpl)
 {
     idt_descriptors[index].offset_low = (address & 0xFFFF);        // offset bits 0..15
     idt_descriptors[index].offset_high = (address >> 16) & 0xFFFF; // offset bits 16..31
@@ -69,15 +70,14 @@ void interrupts_init_descriptor(s32int index, u32int address)
     idt_descriptors[index].reserved = 0x00;                        // Reserved
 
     idt_descriptors[index].type_and_attr = (0x01 << 7) | // P: present
-                                           (0x00 << 6) | // DPL (high bit)
-                                           (0x00 << 5) | // DPL (low bit)
-                                           0x0E;         // D = 1 (32-bit), gate type = interrupt gate
+                                           (dpl & 0x3) << 5 |
+                                           0x0E; // D = 1 (32-bit), gate type = interrupt gate
 }
 
 void interrupts_install_idt()
 {
-
-    interrupts_init_descriptor(INTERRUPTS_KEYBOARD, (u32int)interrupt_handler_33);
+    interrupts_init_descriptor(INTERRUPTS_KEYBOARD, (u32int)interrupt_handler_33,0);
+    interrupts_init_descriptor(INTERRUPTS_SYSCALL, (u32int)interrupt_handler_128,3);
 
     idt.address = (s32int)&idt_descriptors;
     idt.size = sizeof(struct IDTDescriptor) * INTERRUPTS_DESCRIPTOR_COUNT;

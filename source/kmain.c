@@ -18,6 +18,7 @@
 #include "paging.h"
 #include "kstring.h"
 #include "process.h"
+#include "syscalls.h"
 
 // Vars / types
 // void kernel_main_start(void);
@@ -25,6 +26,8 @@ void kernel_virtual_start(void);
 void kernel_physical_start(void);
 void kernel_virtual_end(void);
 void kernel_physical_end(void);
+
+extern char kernel_stack_top[];
 
 typedef void (*call_module_t)(void);
 
@@ -210,6 +213,7 @@ int kernel_main(unsigned int ebx)
     disable_hardware_interrupts();
 
     gdt_init();
+    tss_set_kernel_stack((u32int)kernel_stack_top);
 
     start_vars boot_vars = {
         .k_p_start = (u32int)&kernel_physical_start,
@@ -220,7 +224,7 @@ int kernel_main(unsigned int ebx)
 
     page_init(boot_vars, mbinfo);
 
-    tui_start();
+    
 
     interrupts_install_idt();
 
@@ -237,19 +241,22 @@ int kernel_main(unsigned int ebx)
     FB_write_string("Test End", strlen("Test End"));
     FB_set_cursor_newline();
 
-    multiboot_module_t *modules = (multiboot_module_t *)(mbinfo->mods_addr + KERNEL_VIRTUAL_BASE);
-    // call_module_t start_progam = (call_module_t)modules[0].mod_start;
+    tui_start();
 
-    usize mod_start = (usize)(call_module_t)modules[0].mod_start;
-    usize mod_end = (usize)(call_module_t)modules[0].mod_end;
+    // multiboot_module_t *modules = (multiboot_module_t *)(mbinfo->mods_addr + KERNEL_VIRTUAL_BASE);
+    // // call_module_t start_progam = (call_module_t)modules[0].mod_start;
 
-    process_t *proc = process_create(mod_start, mod_end);
-    if (!proc)
-    {
-        FB_write_DEBUG_string("FAILED_PROC",strlen("FAILED_PROC")); 
-        panic();
-    }
-    process_enter(proc);
+    // usize mod_start = (usize)(call_module_t)modules[0].mod_start;
+    // usize mod_end = (usize)(call_module_t)modules[0].mod_end;
+
+    // process_t *proc = process_create(mod_start, mod_end);
+    // if (!proc)
+    // {
+    //     FB_write_DEBUG_string("FAILED_PROC", strlen("FAILED_PROC"));
+    //     panic();
+    // }
+    // process_enter(proc);
+
 
     return ebx;
 }

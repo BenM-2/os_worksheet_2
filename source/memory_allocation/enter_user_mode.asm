@@ -23,7 +23,7 @@ asm_enter_user_mode:
 
     push USER_MODE_DATA_SEGMENT_SELECTOR ; ss
     push edx                ; esp
-    push 0x2                ; eflags: only the always-1 bit, IF clear
+    push 0x202              ; eflags: allways 1 bit 0x2 | IF 0x200
     push USER_MODE_CODE_SEGMENT_SELECTOR ; cs
     push ecx                ; eip
     iret

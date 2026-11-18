@@ -59,6 +59,7 @@ higher_half:
 section .bss align=4096
 global boot_page_directory
 global boot_page_table
+global kernel_stack_top
 boot_page_directory:    resb 4096
 boot_page_table:        resb 4096
 kernel_stack:           resb KERNEL_STACK_SIZE

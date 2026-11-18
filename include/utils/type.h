@@ -2,6 +2,8 @@
 #ifndef INCLUDE_TYPES_H
 #define INCLUDE_TYPES_H
 
+#include "kbool.h"
+
 typedef unsigned int u32int;
 typedef int s32int;
 typedef unsigned short u16int;

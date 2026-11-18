@@ -43,3 +43,12 @@ lgdt_pub:
 .flush_cs:
     ret
 
+
+global ltr_pub
+; ltr_pub loads the task register with the given TSS selector
+; stack: [esp + 4] the TSS segment selector
+; [esp] The return address
+ltr_pub:
+    mov ax, [esp + 4]
+    ltr ax
+    ret

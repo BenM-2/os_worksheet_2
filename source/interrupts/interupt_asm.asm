@@ -41,4 +41,6 @@ common_interrupt_handler: ;the commonparts ofthe generic interrupt handler
     add esp,8
     ; returnto thecode that gotinterrupted
     iret
-no_error_code_interrupt_handler 33 ; createhandler forinterrupt 1
+no_error_code_interrupt_handler 33 ; keyboard
+no_error_code_interrupt_handler 128 ; Syscall 0x80
+

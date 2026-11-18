@@ -7,6 +7,8 @@
 #ifndef IO_H
 #define IO_H
 
+#include "type.h"
+
 //------------------------------------------------------------------------------
 // Definitions
 
@@ -37,8 +39,10 @@ struct gdt_ptr{
     unsigned short size;
     unsigned int address;
 } __attribute__((packed));
+
 void lgdt_pub(struct gdt_ptr *ptr);
 
+void ltr_pub(u16int selector);
 
 static inline void serial_putc(char c) {
     outb(0x3F8, c);

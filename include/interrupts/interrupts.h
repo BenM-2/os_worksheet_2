@@ -45,5 +45,6 @@ void interrupts_cb_config(const Interrupt_callbacks *const callbacks_);
 // Wrappersaround ASM.
 void load_idt(u32int idt_address);
 void interrupt_handler_33();
+void interrupt_handler_128();
 void interrupt_handler_14();
 #endif /* INCLUDE_INTERRUPTS */
