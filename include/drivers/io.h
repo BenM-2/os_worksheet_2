@@ -59,4 +59,6 @@ static inline void panic(void) {
 
 int sn_printf(int len, char *buff, const char *format, ...);
 
+void shutdown(void);
+
 #endif /* IO_H */

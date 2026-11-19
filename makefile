@@ -53,7 +53,6 @@ qemu_run_curses: | iso
 	-m 32 \
 	-d cpu \
 	-no-reboot \
-	-no-shutdown \
 	-D logQ.txt
 
 telnet:

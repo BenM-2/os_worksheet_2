@@ -52,3 +52,14 @@ ltr_pub:
     mov ax, [esp + 4]
     ltr ax
     ret
+
+global shutdown
+shutdown:
+    cli
+    mov dx, 0x604        ; QEMU ACPI PM1a control port (i440FX / default "pc")
+    mov ax, 0x2000       ; SLP_EN with sleep type 0 (power off on QEMU)
+    out dx, ax           ; 16-bit write, powers off the VM
+
+.halt:
+    hlt
+    jmp .halt

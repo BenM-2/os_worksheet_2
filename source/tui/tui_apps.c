@@ -9,6 +9,7 @@
 #include "tui_apps.h"
 #include "framebuffer.h"
 #include "kstring.h"
+#include "io.h"
 
 //------------------------------------------------------------------------------
 // Function Declarations
@@ -27,43 +28,42 @@ typedef struct
 } TUI_CMD_bg_otps_t;
 
 static TUI_CMD_bg_otps_t TUI_CMD_bg_opts[] = {
-    {.opt_str = "black",         .opt_cb = FB_set_BG_ALL, .opt_value = BLACK},
-    {.opt_str = "blue",          .opt_cb = FB_set_BG_ALL, .opt_value = BLUE},
-    {.opt_str = "green",         .opt_cb = FB_set_BG_ALL, .opt_value = GREEN},
-    {.opt_str = "cyan",          .opt_cb = FB_set_BG_ALL, .opt_value = CYAN},
-    {.opt_str = "red",           .opt_cb = FB_set_BG_ALL, .opt_value = RED},
-    {.opt_str = "magenta",       .opt_cb = FB_set_BG_ALL, .opt_value = MAGENTA},
-    {.opt_str = "brown",         .opt_cb = FB_set_BG_ALL, .opt_value = BROWN},
-    {.opt_str = "light-grey",    .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_GREY},
-    {.opt_str = "dark-grey",     .opt_cb = FB_set_BG_ALL, .opt_value = DARK_GREY},
-    {.opt_str = "light-blue",    .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_BLUE},
-    {.opt_str = "light-green",   .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_GREEN},
-    {.opt_str = "light-cyan",    .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_CYAN},
-    {.opt_str = "light-red",     .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_RED},
+    {.opt_str = "black", .opt_cb = FB_set_BG_ALL, .opt_value = BLACK},
+    {.opt_str = "blue", .opt_cb = FB_set_BG_ALL, .opt_value = BLUE},
+    {.opt_str = "green", .opt_cb = FB_set_BG_ALL, .opt_value = GREEN},
+    {.opt_str = "cyan", .opt_cb = FB_set_BG_ALL, .opt_value = CYAN},
+    {.opt_str = "red", .opt_cb = FB_set_BG_ALL, .opt_value = RED},
+    {.opt_str = "magenta", .opt_cb = FB_set_BG_ALL, .opt_value = MAGENTA},
+    {.opt_str = "brown", .opt_cb = FB_set_BG_ALL, .opt_value = BROWN},
+    {.opt_str = "light-grey", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_GREY},
+    {.opt_str = "dark-grey", .opt_cb = FB_set_BG_ALL, .opt_value = DARK_GREY},
+    {.opt_str = "light-blue", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_BLUE},
+    {.opt_str = "light-green", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_GREEN},
+    {.opt_str = "light-cyan", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_CYAN},
+    {.opt_str = "light-red", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_RED},
     {.opt_str = "light-magenta", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_MAGENTA},
-    {.opt_str = "light-brown",   .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_BROWN},
-    {.opt_str = "white",         .opt_cb = FB_set_BG_ALL, .opt_value = WHITE},
+    {.opt_str = "light-brown", .opt_cb = FB_set_BG_ALL, .opt_value = LIGHT_BROWN},
+    {.opt_str = "white", .opt_cb = FB_set_BG_ALL, .opt_value = WHITE},
 };
 
-
 static TUI_CMD_bg_otps_t TUI_CMD_fg_opts[] = {
-    {.opt_str = "black",         .opt_cb = FB_set_FG_ALL, .opt_value = BLACK},
-    {.opt_str = "blue",          .opt_cb = FB_set_FG_ALL, .opt_value = BLUE},
-    {.opt_str = "green",         .opt_cb = FB_set_FG_ALL, .opt_value = GREEN},
-    {.opt_str = "cyan",          .opt_cb = FB_set_FG_ALL, .opt_value = CYAN},
-    {.opt_str = "red",           .opt_cb = FB_set_FG_ALL, .opt_value = RED},
-    {.opt_str = "magenta",       .opt_cb = FB_set_FG_ALL, .opt_value = MAGENTA},
-    {.opt_str = "brown",         .opt_cb = FB_set_FG_ALL, .opt_value = BROWN},
-    {.opt_str = "light-grey",    .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_GREY},
-    {.opt_str = "dark-grey",     .opt_cb = FB_set_FG_ALL, .opt_value = DARK_GREY},
-    {.opt_str = "light-blue",    .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_BLUE},
-    {.opt_str = "light-green",   .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_GREEN},
-    {.opt_str = "light-cyan",    .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_CYAN},
-    {.opt_str = "light-red",     .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_RED},
+    {.opt_str = "black", .opt_cb = FB_set_FG_ALL, .opt_value = BLACK},
+    {.opt_str = "blue", .opt_cb = FB_set_FG_ALL, .opt_value = BLUE},
+    {.opt_str = "green", .opt_cb = FB_set_FG_ALL, .opt_value = GREEN},
+    {.opt_str = "cyan", .opt_cb = FB_set_FG_ALL, .opt_value = CYAN},
+    {.opt_str = "red", .opt_cb = FB_set_FG_ALL, .opt_value = RED},
+    {.opt_str = "magenta", .opt_cb = FB_set_FG_ALL, .opt_value = MAGENTA},
+    {.opt_str = "brown", .opt_cb = FB_set_FG_ALL, .opt_value = BROWN},
+    {.opt_str = "light-grey", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_GREY},
+    {.opt_str = "dark-grey", .opt_cb = FB_set_FG_ALL, .opt_value = DARK_GREY},
+    {.opt_str = "light-blue", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_BLUE},
+    {.opt_str = "light-green", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_GREEN},
+    {.opt_str = "light-cyan", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_CYAN},
+    {.opt_str = "light-red", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_RED},
     {.opt_str = "light-magenta", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_MAGENTA},
-    {.opt_str = "light-brown",   .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_BROWN},
-    {.opt_str = "white",         .opt_cb = FB_set_FG_ALL, .opt_value = WHITE},
-}; 
+    {.opt_str = "light-brown", .opt_cb = FB_set_FG_ALL, .opt_value = LIGHT_BROWN},
+    {.opt_str = "white", .opt_cb = FB_set_FG_ALL, .opt_value = WHITE},
+};
 
 ERR_t TUI_CMD_bg(const int argc, char *argv[])
 {
@@ -76,18 +76,18 @@ ERR_t TUI_CMD_bg(const int argc, char *argv[])
         return ERR_GENERIC;
     }
 
-    int cap = sizeof(TUI_CMD_bg_opts)/sizeof(TUI_CMD_bg_opts[0]);
+    int cap = sizeof(TUI_CMD_bg_opts) / sizeof(TUI_CMD_bg_opts[0]);
 
     for (int i = 0; i < cap; i++)
     {
-        if ((strcmp(argv[1], TUI_CMD_bg_opts[i].opt_str))==0)
+        if ((strcmp(argv[1], TUI_CMD_bg_opts[i].opt_str)) == 0)
         {
             TUI_CMD_bg_opts[i].opt_cb(TUI_CMD_bg_opts[i].opt_value);
             FB_set_cursor_newline();
             return ERR_NONE;
         }
     }
-    
+
     FB_set_cursor_newline();
     FB_write_string(usage_msg, strlen(usage_msg));
     FB_set_cursor_newline();
@@ -105,11 +105,11 @@ ERR_t TUI_CMD_fg(const int argc, char *argv[])
         return ERR_GENERIC;
     }
 
-    int cap = sizeof(TUI_CMD_fg_opts)/sizeof(TUI_CMD_fg_opts[0]);
+    int cap = sizeof(TUI_CMD_fg_opts) / sizeof(TUI_CMD_fg_opts[0]);
 
     for (int i = 0; i < cap; i++)
     {
-        if ((strcmp(argv[1], TUI_CMD_fg_opts[i].opt_str))==0)
+        if ((strcmp(argv[1], TUI_CMD_fg_opts[i].opt_str)) == 0)
         {
             TUI_CMD_fg_opts[i].opt_cb(TUI_CMD_fg_opts[i].opt_value);
             FB_set_cursor_newline();
@@ -122,9 +122,54 @@ ERR_t TUI_CMD_fg(const int argc, char *argv[])
     return ERR_GENERIC;
 }
 
-ERR_t TUI_CMD_clear(__attribute__((unused)) const int argc, __attribute__((unused))char *argv[])
+ERR_t TUI_CMD_clear(__attribute__((unused)) const int argc, __attribute__((unused)) char *argv[])
 {
     FB_move_cursor(0);
     FB_set_CHAR_ALL(' ');
+    return ERR_NONE;
+}
+
+ERR_t TUI_CMD_help(__attribute__((unused)) const int argc, __attribute__((unused)) char *argv[])
+{
+    int cmd_count = sizeof(TUI_app_table) / sizeof(TUI_app_table[0]);
+
+    if (argc == 1)
+    {
+        for (int i = 0; i < cmd_count; i++)
+        {
+            FB_set_cursor_newline();
+            FB_write_string(TUI_app_table[i].usage, strlen(TUI_app_table[i].usage));
+            
+        }
+        FB_set_cursor_newline();
+        return ERR_NONE;
+    }
+    if (argc == 2)
+    {
+        for (int i = 0; i < cmd_count; i++)
+        {
+            if (!strcmp(argv[1], TUI_app_table[i].cmd))
+            {
+                FB_set_cursor_newline();
+                FB_write_string(TUI_app_table[i].usage, strlen(TUI_app_table[i].usage));
+                FB_set_cursor_newline();
+                return ERR_NONE;
+            }
+        }
+        FB_set_cursor_newline();
+        FB_write_string("help: command unknown", strlen("help: command unknown"));
+        FB_set_cursor_newline();
+        return ERR_NONE;
+    }
+
+    FB_set_cursor_newline();
+    FB_write_string(TUI_app_table[TUI_HELP].usage, strlen(TUI_app_table[TUI_HELP].usage));
+    FB_set_cursor_newline();
+    return ERR_GENERIC;
+}
+
+ERR_t TUI_CMD_shutdown(__attribute__((unused)) const int argc, __attribute__((unused)) char *argv[])
+{
+    shutdown();
     return ERR_NONE;
 }
